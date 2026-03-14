@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models
 import schemas
@@ -22,7 +22,21 @@ def get_restaurant(restaurant_id : int, db : Session = Depends(get_db)):
     restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == restaurant_id
     ).first()
+
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+    
     return restaurant
+
+@app.get("/restaurants/{restaurant_id}/menu", response_model= list[schemas.MenuItemResponse])
+def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
+
+    menu_items = db.query(models.MenuItem).filter(
+        models.MenuItem.restaurant_id == restaurant_id,
+        models.MenuItem.is_active == True
+    ).all()
+
+    return menu_items
 
 @app.post("/categories", response_model= schemas.CategoryResponse)
 def create_category(category : schemas.CategoryCreate, db : Session = Depends(get_db)):
@@ -46,7 +60,7 @@ def update_category(category_id : int, category : schemas.CategoryCreate, db : S
     ).first()
 
     if not db_category:
-        return {"error" : "Category not Found"}
+        raise HTTPException(status_code=404, detail="Category not found")
     
     updated_category = category.dict()
     for key, value in updated_category.items():
@@ -65,7 +79,7 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     ).first()
 
     if not db_category:
-        return {"error": "Category not found"}
+        raise HTTPException(status_code=404, detail="Category not found")
 
     db.delete(db_category)
     db.commit()
@@ -94,7 +108,7 @@ def update_menu_item(menu_item_id : int, menu_item : schemas.MenuItemCreate, db 
     ).first()
 
     if not db_item:
-        return {"error" : "Menu Item not Found"}
+        raise HTTPException(status_code=404, detail="Menu Item not found")
     
     update_data = menu_item.dict()
     for key, value  in update_data.items():
@@ -112,7 +126,7 @@ def delete_menu_item(menu_item_id : int, db : Session = Depends(get_db)):
     ).first()
 
     if not db_item:
-        return {"error" : "Menu Item not Found"}
+        raise HTTPException(status_code=404, detail="Menu Item not found")
     
     db.delete(db_item)
     db.commit()
@@ -133,39 +147,100 @@ def get_customer(db : Session = Depends(get_db)):
     customer = db.query(models.Customer).all()
     return customer
 
-@app.post("/orders", response_model= schemas.OrderResponse)
-def create_order(order : schemas.OrderCreate, db : Session = Depends(get_db)):
-   new_order = models.Order(**order.dict())
+@app.post("/orders", response_model=schemas.OrderResponse)
+def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
-   db.add(new_order)
-   db.commit()
-   db.refresh(new_order)
+    new_order = models.Order(
+        restaurant_id = order.restaurant_id,
+        customer_id = order.customer_id,
+        table_number = order.table_number,
+        status = order.status,
+        payment_method = order.payment_method,
+        notes = order.notes,
+        total_amount = 0
+    )
 
-   return new_order
+    try:
+        db.add(new_order)
+        db.flush()
+
+        total_amount = 0
+        for item in order.items:
+            menu_item = db.query(models.MenuItem).filter(
+                models.MenuItem.menu_item_id == item.menu_item_id
+            ).first()
+
+            if not menu_item:
+                raise HTTPException(status_code=404, detail="Menu Item not found")
+            
+            if not menu_item.is_active:
+                raise HTTPException(status_code=400, detail="Menu Item is not Available")
+            
+            if menu_item.stock < item.quantity:
+                raise HTTPException(status_code=400, detail= f"Not enough stock for {menu_item.item_name}")
+            
+            menu_item.stock -= item.quantity
+            
+            item_total = menu_item.item_price * item.quantity
+            total_amount += item_total
+
+            new_order_item = models.OrderItem(
+                order_id = new_order.order_id,
+                menu_item_id=item.menu_item_id,
+                item_name=menu_item.item_name,
+                quantity=item.quantity,
+                price_at_order=menu_item.item_price
+            )
+
+            db.add(new_order_item)
+
+        new_order.total_amount = total_amount
+        db.commit()
+        db.refresh(new_order)
+
+        return new_order
+    
+    except:
+        db.rollback()
+        raise
+
 
 @app.get("/orders", response_model= list[schemas.OrderResponse])
 def get_order(db : Session = Depends(get_db)):
     order = db.query(models.Order).all()
     return order
 
-@app.get("/orders/{order_id}", response_model=schemas.OrderResponse)
+@app.get("/orders/{order_id}", response_model= schemas.OrderDetailResponse)
 def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(
         models.Order.order_id == order_id
         ).first()
-    return order
+    
+    if not order:
+        raise HTTPException(status_code= 404, detail= "Order not Found")
+    
+    order_items = db.query(models.OrderItem).filter(
+        models.OrderItem.order_id == order_id
+    ).all()
 
-@app.put("/orders/{order_id}", response_model= schemas.OrderResponse)
-def update_order(order_id : int, order : schemas.OrderCreate, db : Session = Depends(get_db)):
+    return {
+        "order" : order,
+        "items" : order_items
+    }
+
+@app.put("/orders/{order_id}", response_model=schemas.OrderResponse)
+def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depends(get_db)):
+
     db_order = db.query(models.Order).filter(
         models.Order.order_id == order_id
     ).first()
 
     if not db_order:
-        return {"error" : "Order not Found"}
-    
-    updated_order = order.dict()
-    for key, value in updated_order.items():
+       raise HTTPException(status_code=404, detail="Order not found")
+
+    update_data = order.dict(exclude_unset=True)
+
+    for key, value in update_data.items():
         setattr(db_order, key, value)
 
     db.commit()

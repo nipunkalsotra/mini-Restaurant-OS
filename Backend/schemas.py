@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from enum import Enum
 
 class RestaurantCreate(BaseModel):
@@ -87,6 +87,10 @@ class PaymentMethod(str, Enum):
     upi = "upi"
     card = "card"
 
+class OrderItemCreateForOrder(BaseModel):
+    menu_item_id : int
+    quantity : int
+
 class OrderCreate(BaseModel):
     restaurant_id : int
     customer_id : Optional[int] = None
@@ -94,6 +98,7 @@ class OrderCreate(BaseModel):
     status : OrderStatus
     payment_method : PaymentMethod
     notes : Optional[str] = None
+    items : List[OrderItemCreateForOrder]
 
 class OrderResponse(BaseModel):
     order_id : int
@@ -106,6 +111,14 @@ class OrderResponse(BaseModel):
     notes : Optional[str] = None
     created_at : datetime
     updated_at : datetime
+
+    class Config:
+        from_attributes = True
+
+class OrderUpdate(BaseModel):
+    status: Optional[str] = None
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -129,6 +142,13 @@ class OrderItemResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class OrderDetailResponse(BaseModel):
+        order: OrderResponse
+        items: list[OrderItemResponse]
+
+        class Config:
+            from_attributes = True
 
 
 
