@@ -31,12 +31,12 @@ def get_restaurant(restaurant_id : int, db : Session = Depends(get_db)):
 @app.get("/restaurants/{restaurant_id}/menu", response_model= list[schemas.MenuItemResponse])
 def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
 
-    menu_items = db.query(models.MenuItem).filter(
+    menu = db.query(models.MenuItem).filter(
         models.MenuItem.restaurant_id == restaurant_id,
         models.MenuItem.is_active == True
     ).all()
 
-    return menu_items
+    return menu
 
 @app.post("/categories", response_model= schemas.CategoryResponse)
 def create_category(category : schemas.CategoryCreate, db : Session = Depends(get_db)):
@@ -62,8 +62,7 @@ def update_category(category_id : int, category : schemas.CategoryCreate, db : S
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
     
-    updated_category = category.dict()
-    for key, value in updated_category.items():
+    for key, value in category.dict().items():
         setattr(db_category, key, value)
 
     db.commit()
@@ -98,8 +97,8 @@ def create_menuitem(menu_item : schemas.MenuItemCreate, db : Session = Depends(g
 
 @app.get("/menu_items", response_model= list[schemas.MenuItemResponse])
 def get_menuitem(db : Session = Depends(get_db)):
-    menu_item = db.query(models.MenuItem).all()
-    return menu_item
+    menu_items = db.query(models.MenuItem).all()
+    return menu_items
 
 @app.put("/menu_items/{menu_item_id}", response_model= schemas.MenuItemResponse)
 def update_menu_item(menu_item_id : int, menu_item : schemas.MenuItemCreate, db : Session = Depends(get_db)):
@@ -110,8 +109,7 @@ def update_menu_item(menu_item_id : int, menu_item : schemas.MenuItemCreate, db 
     if not db_item:
         raise HTTPException(status_code=404, detail="Menu Item not found")
     
-    update_data = menu_item.dict()
-    for key, value  in update_data.items():
+    for key, value  in menu_item.dict().items():
         setattr(db_item, key, value)
 
     db.commit()
@@ -144,11 +142,17 @@ def create_customer(customer : schemas.CustomerCreate, db : Session = Depends(ge
 
 @app.get("/customers", response_model= list[schemas.CustomerResponse])
 def get_customer(db : Session = Depends(get_db)):
-    customer = db.query(models.Customer).all()
-    return customer
+    customers = db.query(models.Customer).all()
+    return customers
 
 @app.post("/orders", response_model=schemas.OrderResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
+    restaurant = db.query(models.Restaurant).filter(
+        models.Restaurant.restaurant_id == order.restaurant_id
+    ).first()
+
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
 
     new_order = models.Order(
         restaurant_id = order.restaurant_id,
@@ -186,10 +190,10 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
             new_order_item = models.OrderItem(
                 order_id = new_order.order_id,
-                menu_item_id=item.menu_item_id,
-                item_name=menu_item.item_name,
-                quantity=item.quantity,
-                price_at_order=menu_item.item_price
+                menu_item_id = item.menu_item_id,
+                item_name = menu_item.item_name,
+                quantity = item.quantity,
+                price_at_order = menu_item.item_price
             )
 
             db.add(new_order_item)
@@ -207,8 +211,8 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
 @app.get("/orders", response_model= list[schemas.OrderResponse])
 def get_order(db : Session = Depends(get_db)):
-    order = db.query(models.Order).all()
-    return order
+    orders = db.query(models.Order).all()
+    return orders
 
 @app.get("/orders/{order_id}", response_model= schemas.OrderDetailResponse)
 def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
@@ -238,9 +242,8 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     if not db_order:
        raise HTTPException(status_code=404, detail="Order not found")
 
-    update_data = order.dict(exclude_unset=True)
-
-    for key, value in update_data.items():
+    updated_order = order.dict(exclude_unset=True)
+    for key, value in updated_order.items():
         setattr(db_order, key, value)
 
     db.commit()
@@ -250,8 +253,8 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
 
 @app.get("/order_items", response_model= list[schemas.OrderItemResponse])
 def get_orderitem(db : Session = Depends(get_db)):
-    orderitem = db.query(models.OrderItem).all()
-    return orderitem
+    orderitems = db.query(models.OrderItem).all()
+    return orderitems
 
 
 
