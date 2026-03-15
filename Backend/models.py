@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, Column, Integer, Text, DateTime, String, F
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 from database import Base
+from sqlalchemy import Enum
+from schemas import OrderStatus
 
 
 engine = create_engine("sqlite:///restaurant_os.db")
@@ -94,7 +96,7 @@ class Order(Base):
     customer_id = Column(Integer, ForeignKey("customers.customer_id", ondelete= "SET NULL"), nullable= True)
     table_number = Column(Integer)
     total_amount = Column(Float, default=0)
-    status = Column(Text, default="pending")
+    status = Column(Enum(OrderStatus), default= OrderStatus.pending, nullable= False)
     payment_method = Column(Text, nullable= False)
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

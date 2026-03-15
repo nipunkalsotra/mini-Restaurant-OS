@@ -79,6 +79,8 @@ class CustomerResponse(BaseModel):
 class OrderStatus(str, Enum):
     pending = "pending"
     preparing = "preparing"
+    ready = "ready"
+    served = "served"
     completed = "completed"
     cancelled = "cancelled"
 

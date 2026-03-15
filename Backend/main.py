@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models
 import schemas
+from schemas import OrderStatus
 from database import get_db, engine
 
 models.Base.metadata.create_all(bind = engine)
@@ -241,6 +242,22 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
 
     if not db_order:
        raise HTTPException(status_code=404, detail="Order not found")
+    
+    ORDER_STATUS_TRANSITIONS = {
+        OrderStatus.pending : [OrderStatus.preparing, OrderStatus.cancelled],
+        OrderStatus.preparing : [OrderStatus.ready, OrderStatus.cancelled],
+        OrderStatus.ready : [OrderStatus.served],
+        OrderStatus.served : [OrderStatus.completed],
+        OrderStatus.completed : [],
+        OrderStatus.cancelled : []
+    }
+
+    if order.status:
+        current_status = db_order.status
+        new_status = order.status
+
+        if new_status not in ORDER_STATUS_TRANSITIONS[current_status]:
+            raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
 
     updated_order = order.dict(exclude_unset=True)
     for key, value in updated_order.items():
@@ -250,6 +267,18 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     db.refresh(db_order)
 
     return db_order
+
+@app.get("/orders/kitchen")
+def  get_kitchen_orders(db : Session = Depends(get_db)):
+    orders = db.query(models.Order).filter(
+        models.Order.status.in_([
+            OrderStatus.pending,
+            OrderStatus.preparing,
+            OrderStatus.ready
+        ]).all()
+    )
+
+    return orders
 
 @app.get("/order_items", response_model= list[schemas.OrderItemResponse])
 def get_orderitem(db : Session = Depends(get_db)):
