@@ -141,7 +141,7 @@ def delete_menu_item(menu_item_id : int, db : Session = Depends(get_db)):
     db.commit()
     return {"message" : "Menu Item deleted successfully"}
 
-@app.get("/menu_items/low_stock")
+@app.get("/menu_items/low_stock", response_model= list[schemas.MenuItemResponse])
 def low_stock_items(db : Session = Depends(get_db)):
     items = db.query(models.MenuItem).filter(
         models.MenuItem.stock < 5
@@ -318,6 +318,17 @@ def  get_kitchen_orders(db : Session = Depends(get_db)):
     )
 
     return orders
+
+@app.get("/orders/history_filtering", response_model= list[schemas.OrderResponse])
+def get_order_history(status : OrderStatus | None = None, db : Session = Depends(get_db)):
+    query = db.query(models.Order)
+
+    if status:
+        query = query.filter(
+            models.Order.status == status
+        )
+
+    return query.all()
 
 @app.get("/order_items", response_model= list[schemas.OrderItemResponse])
 def get_orderitem(db : Session = Depends(get_db)):
