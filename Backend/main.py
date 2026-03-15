@@ -39,6 +39,16 @@ def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
 
     return menu
 
+@app.get("/restaurants/{restaurant_id}/menu/{category_id}")
+def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Session = Depends(get_db)):
+    menu_category = db.query(models.MenuItem).filter(
+        models.MenuItem.restaurant_id == restaurant_id,
+        models.MenuItem.category_id == category_id,
+        models.MenuItem.is_active == True
+    ).all()
+
+    return menu_category
+
 @app.post("/categories", response_model= schemas.CategoryResponse)
 def create_category(category : schemas.CategoryCreate, db : Session = Depends(get_db)):
     new_category = models.Category(**category.dict())
