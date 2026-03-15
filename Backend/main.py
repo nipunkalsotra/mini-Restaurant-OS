@@ -276,6 +276,19 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
 
         if new_status not in ORDER_STATUS_TRANSITIONS[current_status]:
             raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
+        
+    if order.status == OrderStatus.cancelled and db_order.status != OrderStatus.cancelled:
+        order_items = db.query(models.OrderItem).filter(
+            models.OrderItem.order_id == order_id
+        ).all()
+
+        for item in order_items:
+            menu_item = db.query(models.MenuItem).filter(
+                models.MenuItem.menu_item_id == item.menu_item_id
+            ).first()
+
+            if menu_item:
+                menu_item.stock += item.quantity
 
     updated_order = order.dict(exclude_unset=True)
     for key, value in updated_order.items():
