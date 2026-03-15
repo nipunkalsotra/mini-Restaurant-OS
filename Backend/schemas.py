@@ -152,6 +152,13 @@ class OrderDetailResponse(BaseModel):
         class Config:
             from_attributes = True
 
+class SalesResponse(BaseModel):
+    restaurant_id : int
+    total_orders : int
+    total_revenue : float
+
+
+
 
 
 

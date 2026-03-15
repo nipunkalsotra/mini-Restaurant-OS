@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 import models
 import schemas
 from schemas import OrderStatus
@@ -31,6 +32,12 @@ def get_restaurant(restaurant_id : int, db : Session = Depends(get_db)):
 
 @app.get("/restaurants/{restaurant_id}/menu", response_model= list[schemas.MenuItemResponse])
 def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
+    restaurant = db.query(models.Restaurant).filter(
+        models.Restaurant.restaurant_id == restaurant_id
+    ).first()
+
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
 
     menu = db.query(models.MenuItem).filter(
         models.MenuItem.restaurant_id == restaurant_id,
@@ -39,8 +46,15 @@ def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
 
     return menu
 
-@app.get("/restaurants/{restaurant_id}/menu/{category_id}")
+@app.get("/restaurants/{restaurant_id}/menu/{category_id}", response_model= list[schemas.MenuItemResponse])
 def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Session = Depends(get_db)):
+    restaurant = db.query(models.Restaurant).filter(
+        models.Restaurant.restaurant_id == restaurant_id
+    ).first()
+
+    if not restaurant:
+        raise HTTPException(status_code= 404, detail= "Restaurant not Found")
+
     menu_category = db.query(models.MenuItem).filter(
         models.MenuItem.restaurant_id == restaurant_id,
         models.MenuItem.category_id == category_id,
@@ -48,6 +62,25 @@ def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Ses
     ).all()
 
     return menu_category
+
+@app.get("/restaurants/{restaurant_id}/sales", response_model= schemas.SalesResponse)
+def get_sales(restaurant_id : int, db : Session = Depends(get_db)):
+
+    total_orders = db.query(models.Order).filter(
+        models.Order.restaurant_id == restaurant_id,
+        models.Order.status == OrderStatus.completed
+    ).count()
+
+    total_revenue = db.query(func.sum(models.Order.total_amount)).filter(
+        models.Order.restaurant_id == restaurant_id,
+        models.Order.status == OrderStatus.completed
+    ).scalar()
+
+    return schemas.SalesResponse(
+        restaurant_id = restaurant_id,
+        total_orders = total_orders,
+        total_revenue = total_revenue or 0
+    )
 
 @app.post("/categories", response_model= schemas.CategoryResponse)
 def create_category(category : schemas.CategoryCreate, db : Session = Depends(get_db)):
@@ -164,7 +197,7 @@ def get_customer(db : Session = Depends(get_db)):
     customers = db.query(models.Customer).all()
     return customers
 
-@app.get("/customers/{customer_id}/orders")
+@app.get("/customers/{customer_id}/orders", response_model= list[schemas.OrderResponse])
 def customer_order(customer_id : int, db : Session = Depends(get_db)):
     orders = db.query(models.Order).filter(
         models.Order.customer_id == customer_id
@@ -231,14 +264,14 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
         return new_order
     
-    except:
+    except Exception as e:
         db.rollback()
-        raise
+        raise HTTPException(status_code=500, detail="Order creation failed")
 
 
 @app.get("/orders", response_model= list[schemas.OrderResponse])
 def get_order(db : Session = Depends(get_db)):
-    orders = db.query(models.Order).all()
+    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
     return orders
 
 @app.get("/orders/{order_id}", response_model= schemas.OrderDetailResponse)
@@ -254,10 +287,10 @@ def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
         models.OrderItem.order_id == order_id
     ).all()
 
-    return {
-        "order" : order,
-        "items" : order_items
-    }
+    return schemas.OrderDetailResponse(
+        order = order,
+        items = order_items
+    )
 
 @app.put("/orders/{order_id}", response_model=schemas.OrderResponse)
 def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depends(get_db)):
@@ -307,19 +340,19 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
 
     return db_order
 
-@app.get("/orders/kitchen")
+@app.get("/orders/kitchen", response_model= list[schemas.OrderResponse])
 def  get_kitchen_orders(db : Session = Depends(get_db)):
     orders = db.query(models.Order).filter(
         models.Order.status.in_([
             OrderStatus.pending,
             OrderStatus.preparing,
             OrderStatus.ready
-        ]).all()
-    )
+        ])
+    ).order_by(models.Order.created_at).all()
 
     return orders
 
-@app.get("/orders/history_filtering", response_model= list[schemas.OrderResponse])
+@app.get("/orders/filter", response_model= list[schemas.OrderResponse])
 def get_order_history(status : OrderStatus | None = None, db : Session = Depends(get_db)):
     query = db.query(models.Order)
 
