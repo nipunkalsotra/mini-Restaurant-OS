@@ -141,6 +141,14 @@ def delete_menu_item(menu_item_id : int, db : Session = Depends(get_db)):
     db.commit()
     return {"message" : "Menu Item deleted successfully"}
 
+@app.get("/menu_items/low_stock")
+def low_stock_items(db : Session = Depends(get_db)):
+    items = db.query(models.MenuItem).filter(
+        models.MenuItem.stock < 5
+    ).all()
+
+    return items
+
 @app.post("/customers", response_model= schemas.CustomerResponse)
 def create_customer(customer : schemas.CustomerCreate, db : Session = Depends(get_db)):
    new_customer = models.Customer(**customer.dict())
