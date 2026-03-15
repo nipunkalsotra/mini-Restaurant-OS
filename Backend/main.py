@@ -156,6 +156,14 @@ def get_customer(db : Session = Depends(get_db)):
     customers = db.query(models.Customer).all()
     return customers
 
+@app.get("/customers/{customer_id}/orders")
+def customer_order(customer_id : int, db : Session = Depends(get_db)):
+    orders = db.query(models.Order).filter(
+        models.Order.customer_id == customer_id
+    ).all()
+
+    return orders
+
 @app.post("/orders", response_model=schemas.OrderResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
     restaurant = db.query(models.Restaurant).filter(
