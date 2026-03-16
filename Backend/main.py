@@ -5,9 +5,18 @@ import models
 import schemas
 from schemas import OrderStatus
 from database import get_db, engine
+from fastapi.middleware.cors import CORSMiddleware
 
 models.Base.metadata.create_all(bind = engine)
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/restaurants", response_model= schemas.RestaurantResponse)
 def create_restaurant(restaurant : schemas.RestaurantCreate, db : Session = Depends(get_db)):
@@ -18,6 +27,11 @@ def create_restaurant(restaurant : schemas.RestaurantCreate, db : Session = Depe
     db.refresh(new_restaurant)
 
     return new_restaurant
+
+@app.get("/restaurants", response_model=list[schemas.RestaurantResponse])
+def get_all_restaurants(db: Session = Depends(get_db)):
+    restaurants = db.query(models.Restaurant).all()
+    return restaurants
 
 @app.get("/restaurants/{restaurant_id}", response_model= schemas.RestaurantResponse)
 def get_restaurant(restaurant_id : int, db : Session = Depends(get_db)):
