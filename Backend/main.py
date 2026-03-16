@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_origins=["*"],   # allow all origins during development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -286,6 +286,19 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 @app.get("/orders", response_model= list[schemas.OrderResponse])
 def get_order(db : Session = Depends(get_db)):
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+
+    return orders
+
+@app.get("/orders/kitchen", response_model= list[schemas.OrderResponse])
+def  get_kitchen_orders(db : Session = Depends(get_db)):
+    orders = db.query(models.Order).filter(
+        models.Order.status.in_([
+            OrderStatus.pending,
+            OrderStatus.preparing,
+            OrderStatus.ready
+        ])
+    ).order_by(models.Order.created_at).all()
+
     return orders
 
 @app.get("/orders/{order_id}", response_model= schemas.OrderDetailResponse)
@@ -353,18 +366,6 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     db.refresh(db_order)
 
     return db_order
-
-@app.get("/orders/kitchen", response_model= list[schemas.OrderResponse])
-def  get_kitchen_orders(db : Session = Depends(get_db)):
-    orders = db.query(models.Order).filter(
-        models.Order.status.in_([
-            OrderStatus.pending,
-            OrderStatus.preparing,
-            OrderStatus.ready
-        ])
-    ).order_by(models.Order.created_at).all()
-
-    return orders
 
 @app.get("/orders/filter", response_model= list[schemas.OrderResponse])
 def get_order_history(status : OrderStatus | None = None, db : Session = Depends(get_db)):

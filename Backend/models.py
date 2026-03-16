@@ -5,9 +5,6 @@ from database import Base
 from sqlalchemy import Enum
 from schemas import OrderStatus
 
-
-engine = create_engine("sqlite:///restaurant_os.db")
-
 class Restaurant(Base):
     __tablename__ = "restaurants"
 
@@ -109,7 +106,7 @@ class Order(Base):
     __table_args__ = (
         CheckConstraint("table_number >= 0", name = "tb_num_neg"),
         CheckConstraint("total_amount >= 0", name = "tt_amt_neg"),
-        CheckConstraint("status IN ('pending', 'completed', 'cancelled', 'preparing')", name = "stt_ch"),
+        CheckConstraint("status IN ('pending','preparing','ready','served','completed','cancelled')", name="stt_ch"),
         CheckConstraint("payment_method IN ('cash', 'upi' ,'card')"),
     )
 
