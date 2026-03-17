@@ -80,6 +80,13 @@ function KitchenPage() {
               <p>Table: {order.table_number}</p>
               <p>Total: ₹{order.total_amount}</p>
 
+              {/* SHOW ORDER ITEMS */}
+              {order.items?.map(item => (
+                <p key={item.order_item_id}>
+                  🍽 {item.item_name} x {item.quantity}
+                </p>
+              ))}
+
               <button
                 onClick={() =>
                   updateStatus(order.order_id, "preparing")
@@ -105,6 +112,13 @@ function KitchenPage() {
               <p>Table: {order.table_number}</p>
               <p>Total: ₹{order.total_amount}</p>
 
+              {/* SHOW ORDER ITEMS */}
+              {order.items?.map(item => (
+                <p key={item.order_item_id}>
+                  🍽 {item.item_name} x {item.quantity}
+                </p>
+              ))}
+
               <button
                 onClick={() =>
                   updateStatus(order.order_id, "ready")
@@ -129,6 +143,22 @@ function KitchenPage() {
 
               <p>Table: {order.table_number}</p>
               <p>Total: ₹{order.total_amount}</p>
+
+              {/* SHOW ORDER ITEMS */}
+              {order.items?.map(item => (
+                <p key={item.order_item_id}>
+                  🍽 {item.item_name} x {item.quantity}
+                </p>
+              ))}
+
+              {/* SERVE BUTTON */}
+              <button
+                onClick={() =>
+                  updateStatus(order.order_id, "served")
+                }
+              >
+                Serve Order
+              </button>
 
             </div>
           ))}

@@ -96,6 +96,12 @@ def get_sales(restaurant_id : int, db : Session = Depends(get_db)):
         total_revenue = total_revenue or 0
     )
 
+@app.get("/restaurants/{restaurant_id}/categories")
+def get_categories(restaurant_id: int, db: Session = Depends(get_db)):
+    return db.query(models.Category).filter(
+        models.Category.restaurant_id == restaurant_id
+    ).all()
+
 @app.post("/categories", response_model= schemas.CategoryResponse)
 def create_category(category : schemas.CategoryCreate, db : Session = Depends(get_db)):
     new_category = models.Category(**category.dict())

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
+import Cart from "../components/Cart";
 
 function MenuPage() {
   const [restaurants, setRestaurants] = useState([]);
@@ -10,24 +11,24 @@ function MenuPage() {
   const [loadingMenu, setLoadingMenu] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [cart, setCart] = useState([]);
 
-  // Fetch all restaurants
   useEffect(() => {
-    setLoadingRestaurants(true);
     API.get("/restaurants")
       .then((res) => setRestaurants(res.data))
       .catch(() => setError("Failed to load restaurants"))
       .finally(() => setLoadingRestaurants(false));
   }, []);
 
-  // Fetch categories once
   useEffect(() => {
-    API.get("/categories")
+    if (!selectedRestaurantId) return;
+
+    API.get(`/restaurants/${selectedRestaurantId}/categories`)
       .then((res) => setCategories(res.data))
       .catch(() => console.error("Failed to load categories"));
-  }, []);
+  }, [selectedRestaurantId]);
 
-  // Fetch menu when a restaurant is selected
   useEffect(() => {
     if (!selectedRestaurantId) return;
 
@@ -35,102 +36,214 @@ function MenuPage() {
     setError(null);
 
     API.get(`/restaurants/${selectedRestaurantId}/menu`)
-      .then((res) => {
-        if (Array.isArray(res.data)) {
-          setMenu(res.data);
-        } else {
-          console.error("Unexpected menu response:", res.data);
-          setMenu([]);
-        }
-      })
+      .then((res) => setMenu(res.data))
       .catch(() => setError("Failed to load menu"))
       .finally(() => setLoadingMenu(false));
   }, [selectedRestaurantId]);
 
-  // Filtered menu based on search term
-  const filteredMenu = menu.filter((item) =>
-    item.item_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    setSelectedCategory("all");
+    setCart([]);
+  }, [selectedRestaurantId]);
 
-  // Group filtered menu by category
-  const groupedMenu = categories
-    .map((cat) => ({
-      ...cat,
-      items: filteredMenu.filter((item) => item.category_id === cat.category_id),
-    }))
-    // Only include categories with at least one item
-    .filter((cat) => cat.items.length > 0);
+  const addToCart = (item) => {
+    setCart((prev) => {
+      const existing = prev.find(
+        (i) => i.menu_item_id === item.menu_item_id
+      );
+
+      if (existing) {
+        return prev.map((i) =>
+          i.menu_item_id === item.menu_item_id
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          ...item,
+          quantity: 1,
+          restaurant_id: selectedRestaurantId
+        }
+      ];
+    });
+  };
+
+  const filteredMenu = menu.filter((item) => {
+    const matchesSearch = item.item_name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "all" ||
+      item.category_id === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div style={{ padding: "1rem" }}>
-      <h1>Restaurant Menu</h1>
+    <div style={{ display: "flex", background: "#f4f6f8" }}>
 
-      {/* Restaurant Selector */}
-      {loadingRestaurants ? (
-        <p>Loading restaurants...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : (
-        <div style={{ marginBottom: "1rem" }}>
-          <label htmlFor="restaurant-select">Select Restaurant: </label>
+      {/* LEFT SIDE */}
+      <div style={{ flex: 3, padding: "20px" }}>
+        <h1>🍽 Menu Dashboard</h1>
+
+        {/* Restaurant Selector */}
+        {loadingRestaurants ? (
+          <p>Loading restaurants...</p>
+        ) : (
           <select
-            id="restaurant-select"
             value={selectedRestaurantId || ""}
-            onChange={(e) => setSelectedRestaurantId(Number(e.target.value))}
+            onChange={(e) =>
+              setSelectedRestaurantId(Number(e.target.value))
+            }
+            style={{
+              padding: "8px",
+              borderRadius: "6px",
+              border: "1px solid #ccc",
+              marginTop: "10px"
+            }}
           >
-            <option value="">--Choose a restaurant--</option>
+            <option value="">Select Restaurant</option>
             {restaurants.map((r) => (
               <option key={r.restaurant_id} value={r.restaurant_id}>
                 {r.restaurant_name}
               </option>
             ))}
           </select>
-        </div>
-      )}
+        )}
 
-      {/* Search Bar */}
-      {selectedRestaurantId && menu.length > 0 && (
-        <div style={{ marginBottom: "1rem" }}>
+        {/* Search */}
+        {selectedRestaurantId && (
           <input
             type="text"
-            placeholder="Search menu items..."
+            placeholder="🔍 Search items..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: "0.5rem", width: "100%", maxWidth: "400px" }}
+            style={{
+              marginTop: "15px",
+              padding: "10px",
+              width: "100%",
+              borderRadius: "8px",
+              border: "1px solid #ccc"
+            }}
           />
-        </div>
-      )}
+        )}
 
-      {/* Menu */}
-      {loadingMenu ? (
-        <p>Loading menu...</p>
-      ) : !selectedRestaurantId ? (
-        <p>Please select a restaurant to view its menu.</p>
-      ) : groupedMenu.length === 0 ? (
-        <p>No menu items found.</p>
-      ) : (
-        groupedMenu.map((cat) => (
-          <div key={cat.category_id} style={{ marginBottom: "1.5rem" }}>
-            <h2>{cat.category_name}</h2>
-            {cat.items.map((item) => (
+        {/* Categories */}
+        {categories.length > 0 && (
+          <div style={{
+            margin: "20px 0",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px"
+          }}>
+            <button
+              onClick={() => setSelectedCategory("all")}
+              style={{
+                padding: "6px 12px",
+                borderRadius: "20px",
+                border: "none",
+                background: selectedCategory === "all" ? "#333" : "#eee",
+                color: selectedCategory === "all" ? "#fff" : "#000",
+                cursor: "pointer"
+              }}
+            >
+              All
+            </button>
+
+            {categories.map((cat) => (
+              <button
+                key={cat.category_id}
+                onClick={() => setSelectedCategory(cat.category_id)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  border: "none",
+                  background:
+                    selectedCategory === cat.category_id ? "#333" : "#eee",
+                  color:
+                    selectedCategory === cat.category_id ? "#fff" : "#000",
+                  cursor: "pointer"
+                }}
+              >
+                {cat.category_name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Error */}
+        {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {/* Menu Grid */}
+        {loadingMenu ? (
+          <p>Loading menu...</p>
+        ) : filteredMenu.length === 0 ? (
+          <p>No items found</p>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: "20px"
+            }}
+          >
+            {filteredMenu.map((item) => (
               <div
                 key={item.menu_item_id}
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  opacity: item.stock === 0 ? 0.5 : 1,
-                  marginBottom: "0.5rem",
+                  background: "#fff",
+                  padding: "15px",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  borderTop:
+                    item.stock === 0
+                      ? "5px solid #e74c3c"
+                      : item.stock < 5
+                      ? "5px solid #f39c12"
+                      : "5px solid #2ecc71"
                 }}
               >
-                <span>
-                  {item.item_name} {item.stock === 0 && "(Out of stock)"}
-                </span>
-                <span>₹{item.item_price}</span>
+                <h3>{item.item_name}</h3>
+
+                <p><b>₹{item.item_price}</b></p>
+
+                <p style={{ fontSize: "13px", color: "#555" }}>
+                  {item.stock === 0
+                    ? "❌ Out of Stock"
+                    : item.stock < 5
+                      ? "⚠️ Low Stock"
+                      : `Stock: ${item.stock}`}
+                </p>
+
+                <button
+                  onClick={() => addToCart(item)}
+                  disabled={item.stock === 0}
+                  style={{
+                    marginTop: "10px",
+                    padding: "6px 10px",
+                    width: "100%",
+                    border: "none",
+                    borderRadius: "6px",
+                    background: item.stock === 0 ? "#ccc" : "#2ecc71",
+                    color: "#fff",
+                    cursor:
+                      item.stock === 0 ? "not-allowed" : "pointer"
+                  }}
+                >
+                  ➕ Add to Cart
+                </button>
               </div>
             ))}
           </div>
-        ))
-      )}
+        )}
+      </div>
+
+      {/* RIGHT SIDE CART */}
+      <Cart cart={cart} setCart={setCart} />
     </div>
   );
 }
