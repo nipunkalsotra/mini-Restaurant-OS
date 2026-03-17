@@ -31,6 +31,7 @@ function OrderDetailPage() {
                 marginBottom: "20px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
             }}>
+                <p><strong>Customer Name:</strong> {order.customer_name || "Walk-in"}</p>
                 <p><b>🍽 Table:</b> {order.table_number || "N/A"}</p>
                 <p><b>📌 Status:</b> {order.status}</p>
                 <p><b>💳 Payment:</b> {order.payment_method}</p>

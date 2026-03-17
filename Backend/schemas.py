@@ -157,6 +157,7 @@ class SalesResponse(BaseModel):
     restaurant_id : int
     total_orders : int
     total_revenue : float
+    status_counts : dict[str, int]
 
 
 

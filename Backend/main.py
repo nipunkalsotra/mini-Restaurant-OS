@@ -90,10 +90,17 @@ def get_sales(restaurant_id : int, db : Session = Depends(get_db)):
         models.Order.status == OrderStatus.completed
     ).scalar()
 
+    status_counts = db.query(models.Order.status, func.count(models.Order.order_id)).filter(
+        models.Order.restaurant_id == restaurant_id
+    ).group_by(models.Order.status).all()
+
+    status_dict = {status.value: count for status, count in status_counts}
+
     return schemas.SalesResponse(
         restaurant_id = restaurant_id,
         total_orders = total_orders,
-        total_revenue = total_revenue or 0
+        total_revenue = total_revenue or 0,
+        status_counts = status_dict
     )
 
 @app.get("/restaurants/{restaurant_id}/categories")
@@ -315,6 +322,8 @@ def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
     
     if not order:
         raise HTTPException(status_code= 404, detail= "Order not Found")
+    
+    order.customer_name = order.customer.customer_name if order.customer else None
     
     order_items = db.query(models.OrderItem).filter(
         models.OrderItem.order_id == order_id
