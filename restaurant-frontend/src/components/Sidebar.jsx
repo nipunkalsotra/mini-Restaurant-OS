@@ -1,22 +1,56 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import { FaUtensils, FaClipboardList, FaUsers, FaChartLine, FaConciergeBell } from "react-icons/fa";
 
 function Sidebar() {
+  const linkStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "12px 15px",
+    borderRadius: "8px",
+    textDecoration: "none",
+    color: "white",
+    transition: "all 0.2s ease",
+  };
+
+  const activeStyle = {
+    background: "#00bcd4",
+    color: "#222",
+  };
+
   return (
     <div style={{
-      width: "200px",
+      width: "220px",
       height: "100vh",
       background: "#222",
       color: "white",
-      padding: "20px"
+      padding: "20px",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "flex-start"
     }}>
-      <h2>Restaurant OS</h2>
+      <h2 style={{ marginBottom: "40px", color: "#00bcd4" }}>Restaurant OS</h2>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        <Link to="/" style={{ color: "white" }}>Menu</Link>
-        <Link to="/orders" style={{ color: "white" }}>Orders</Link>
-        <Link to="/customers" style={{ color: "white" }}>Customers</Link>
-        <Link to="/sales" style={{ color: "white" }}>Sales</Link>
-        <Link to="/kitchen" style={{ color: "white" }}>Kitchen</Link>
+        <NavLink to="/" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaUtensils /> Menu
+        </NavLink>
+
+        <NavLink to="/orders" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaClipboardList /> Orders
+        </NavLink>
+
+        <NavLink to="/customers" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaUsers /> Customers
+        </NavLink>
+
+        <NavLink to="/sales" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaChartLine /> Sales
+        </NavLink>
+
+        <NavLink to="/kitchen" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaConciergeBell /> Kitchen
+        </NavLink>
       </nav>
     </div>
   );

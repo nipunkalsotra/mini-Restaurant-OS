@@ -10,6 +10,7 @@ import KitchenPage from "./pages/KitchenPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage"
 
+
 function App() {
   return (
     <BrowserRouter>
