@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 function OrdersPage() {
     const [orders, setOrders] = useState([]);
     const [selectedStatus, setSelectedStatus] = useState("all");
+    const [searchTerm, setSearchTerm] = useState(""); // ✅ FIXED
 
     const navigate = useNavigate();
 
@@ -36,7 +37,7 @@ function OrdersPage() {
         }
     };
 
-    // ✅ CANCEL ORDER FUNCTION
+    // ✅ CANCEL ORDER
     const cancelOrder = async (orderId) => {
         if (!window.confirm("Cancel this order?")) return;
 
@@ -45,7 +46,6 @@ function OrdersPage() {
                 status: "cancelled"
             });
 
-            // update UI instantly
             setOrders(prev =>
                 prev.map(o =>
                     o.order_id === orderId
@@ -60,19 +60,28 @@ function OrdersPage() {
         }
     };
 
-    // 🔥 FILTERED ORDERS
-    const filteredOrders =
-        selectedStatus === "all"
-            ? orders
-            : orders.filter(o => o.status === selectedStatus);
+    // 🔥 SEARCH + STATUS FILTER COMBINED
+    const filteredOrders = orders.filter((o) => {
+        const search = searchTerm.toLowerCase();
 
-    // 🔥 COUNT FUNCTION
+        const matchesSearch =
+            o.order_id.toString().includes(search) ||
+            (o.table_number || "").toString().includes(search) ||
+            (o.customer_name || "").toLowerCase().includes(search);
+
+        const matchesStatus =
+            selectedStatus === "all" || o.status === selectedStatus;
+
+        return matchesSearch && matchesStatus;
+    });
+
+    // 🔥 COUNT
     const getCount = (status) => {
         if (status === "all") return orders.length;
         return orders.filter(o => o.status === status).length;
     };
 
-    // ✅ GRAND TOTAL
+    // 💰 GRAND TOTAL
     const grandTotal = orders.reduce(
         (sum, order) => sum + (order.total_amount || 0),
         0
@@ -82,12 +91,27 @@ function OrdersPage() {
         <div style={{ padding: "20px" }}>
             <h1>📦 Orders Dashboard</h1>
 
-            {/* ✅ TOTAL REVENUE */}
             <h2 style={{ marginTop: "10px" }}>
                 💰 Total Revenue: ₹{grandTotal}
             </h2>
 
-            {/* 🔥 FILTER BAR */}
+            {/* 🔍 SEARCH BAR */}
+            <div style={{ margin: "15px 0" }}>
+                <input
+                    type="text"
+                    placeholder="🔍 Search by Order ID / Table / Customer"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                        padding: "8px",
+                        width: "300px",
+                        borderRadius: "6px",
+                        border: "1px solid #ccc"
+                    }}
+                />
+            </div>
+
+            {/* 🔥 STATUS FILTER */}
             <div style={{
                 margin: "20px 0",
                 display: "flex",
@@ -114,7 +138,7 @@ function OrdersPage() {
                 ))}
             </div>
 
-            {/* 🔥 ORDERS GRID */}
+            {/* 🔲 ORDERS GRID */}
             {filteredOrders.length === 0 ? (
                 <p>No orders found</p>
             ) : (
@@ -162,12 +186,12 @@ function OrdersPage() {
                                 </p>
                             )}
 
-                            {/* ✅ CANCEL BUTTON */}
+                            {/* ❌ CANCEL BUTTON */}
                             {o.status !== "cancelled" &&
                                 o.status !== "completed" && (
                                     <button
                                         onClick={(e) => {
-                                            e.stopPropagation(); // prevent navigation
+                                            e.stopPropagation();
                                             cancelOrder(o.order_id);
                                         }}
                                         style={{

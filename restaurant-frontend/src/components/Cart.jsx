@@ -1,226 +1,305 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../api/api";
 
 function Cart({ cart, setCart }) {
 
-  const [showForm, setShowForm] = useState(false);
+    const [showForm, setShowForm] = useState(false);
+    const [customerSearch, setCustomerSearch] = useState("");
+    const [customers, setCustomers] = useState([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState("");
 
-  const [orderDetails, setOrderDetails] = useState({
-    customer_name: "",
-    phone: "",
-    table_number: "",
-    notes: ""
-  });
+    const [newCustomer, setNewCustomer] = useState({
+        name: "",
+        phone: ""
+    });
 
-  // Increase quantity
-  const increaseQty = (id) => {
-    setCart(prev =>
-      prev.map(item =>
-        item.menu_item_id === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
-  };
+    const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
 
-  // Decrease quantity
-  const decreaseQty = (id) => {
-    setCart(prev =>
-      prev
-        .map(item =>
-          item.menu_item_id === id
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        )
-        .filter(item => item.quantity > 0)
-    );
-  };
-
-  // Remove item
-  const removeItem = (id) => {
-    setCart(prev =>
-      prev.filter(item => item.menu_item_id !== id)
-    );
-  };
-
-  const total = cart.reduce(
-    (sum, item) => sum + item.item_price * item.quantity,
-    0
-  );
-
-  // 🔥 PLACE ORDER WITH CUSTOMER CREATION
-  const placeOrder = async () => {
-    try {
-      if (!orderDetails.customer_name) {
-        alert("Customer name is required");
-        return;
-      }
-
-      // 1️⃣ Create Customer
-      const customerRes = await API.post("/customers", {
-        restaurant_id: cart[0]?.restaurant_id,
-        customer_name: orderDetails.customer_name,
-        customer_phone: orderDetails.phone
-      });
-
-      const customer_id = customerRes.data.customer_id;
-
-      // 2️⃣ Create Order
-      const payload = {
-        restaurant_id: cart[0]?.restaurant_id,
-        customer_id: customer_id,
-        table_number: Number(orderDetails.table_number),
-        status: "pending",
-        payment_method: "cash",
-        notes: orderDetails.notes,
-        items: cart.map(item => ({
-          menu_item_id: item.menu_item_id,
-          quantity: item.quantity
-        }))
-      };
-
-      console.log("ORDER PAYLOAD:", payload);
-
-      await API.post("/orders", payload);
-
-      alert("✅ Order placed successfully!");
-
-      // Reset
-      setCart([]);
-      setShowForm(false);
-      setOrderDetails({
-        customer_name: "",
-        phone: "",
+    const [orderDetails, setOrderDetails] = useState({
         table_number: "",
         notes: ""
-      });
+    });
 
-    } catch (error) {
-      console.error("ERROR:", error.response?.data || error.message);
-      alert("❌ Failed to place order");
-    }
-  };
+    // ✅ Fetch customers
+    useEffect(() => {
+        API.get("/customers")
+            .then(res => setCustomers(res.data))
+            .catch(err => console.error(err));
+    }, []);
 
-  return (
-    <div style={{
-      width: "300px",
-      borderLeft: "2px solid #ccc",
-      padding: "15px"
-    }}>
-      <h2>🛒 Cart</h2>
+    // Cart functions
+    const increaseQty = (id) => {
+        setCart(prev =>
+            prev.map(item =>
+                item.menu_item_id === id
+                    ? { ...item, quantity: item.quantity + 1 }
+                    : item
+            )
+        );
+    };
 
-      {cart.length === 0 ? (
-        <p>No items</p>
-      ) : (
-        <>
-          {cart.map(item => (
-            <div key={item.menu_item_id} style={{ marginBottom: "10px" }}>
-              
-              <div>{item.item_name}</div>
+    const decreaseQty = (id) => {
+        setCart(prev =>
+            prev
+                .map(item =>
+                    item.menu_item_id === id
+                        ? { ...item, quantity: item.quantity - 1 }
+                        : item
+                )
+                .filter(item => item.quantity > 0)
+        );
+    };
 
-              <div>
-                ₹{item.item_price} × {item.quantity}
-              </div>
+    const removeItem = (id) => {
+        setCart(prev =>
+            prev.filter(item => item.menu_item_id !== id)
+        );
+    };
 
-              <div style={{ marginTop: "5px" }}>
-                <button onClick={() => decreaseQty(item.menu_item_id)}>➖</button>
-                <button onClick={() => increaseQty(item.menu_item_id)}>➕</button>
-                <button onClick={() => removeItem(item.menu_item_id)}>❌</button>
-              </div>
+    const total = cart.reduce(
+        (sum, item) => sum + item.item_price * item.quantity,
+        0
+    );
 
-            </div>
-          ))}
+    // ✅ PLACE ORDER
+    const placeOrder = async () => {
+        try {
+            let customer_id = selectedCustomerId;
 
-          <hr />
-          <h3>Total: ₹{total}</h3>
+            // 🔥 If creating new customer
+            if (showNewCustomerForm) {
+                if (!newCustomer.name) {
+                    alert("Customer name required");
+                    return;
+                }
 
-          {/* OPEN FORM */}
-          <button
-            onClick={() => setShowForm(true)}
-            style={{
-              marginTop: "10px",
-              padding: "10px",
-              width: "100%",
-              background: "green",
-              color: "white",
-              border: "none",
-              cursor: "pointer"
-            }}
-          >
-            Place Order
-          </button>
-        </>
-      )}
+                const res = await API.post("/customers", {
+                    restaurant_id: cart[0]?.restaurant_id,
+                    customer_name: newCustomer.name,
+                    customer_phone: newCustomer.phone
+                });
 
-      {/* 🔥 MODAL FORM */}
-      {showForm && (
+                customer_id = res.data.customer_id;
+            }
+
+            // 🔥 ORDER PAYLOAD
+            const payload = {
+                restaurant_id: cart[0]?.restaurant_id,
+                customer_id: customer_id || null,
+                table_number: Number(orderDetails.table_number),
+                status: "pending",
+                payment_method: "cash",
+                notes: orderDetails.notes,
+                items: cart.map(item => ({
+                    menu_item_id: item.menu_item_id,
+                    quantity: item.quantity
+                }))
+            };
+
+            await API.post("/orders", payload);
+
+            alert("✅ Order placed successfully!");
+
+            // Reset
+            setCart([]);
+            setShowForm(false);
+            setSelectedCustomerId("");
+            setNewCustomer({ name: "", phone: "" });
+            setShowNewCustomerForm(false);
+            setOrderDetails({ table_number: "", notes: "" });
+
+        } catch (error) {
+            console.error(error.response?.data);
+            alert("❌ Failed to place order");
+        }
+    };
+
+    const filteredCustomers = customers.filter(c => {
+        const search = customerSearch.toLowerCase();
+
+        return (
+            c.customer_name.toLowerCase().includes(search) ||
+            (c.customer_phone || "").includes(search)
+        );
+    });
+    return (
         <div style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background: "rgba(0,0,0,0.5)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center"
+            width: "300px",
+            borderLeft: "2px solid #ccc",
+            padding: "15px"
         }}>
+            <h2>🛒 Cart</h2>
 
-          <div style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "10px",
-            width: "300px"
-          }}>
-            <h3>Enter Order Details</h3>
+            {cart.length === 0 ? (
+                <p>No items</p>
+            ) : (
+                <>
+                    {cart.map(item => (
+                        <div key={item.menu_item_id} style={{ marginBottom: "10px" }}>
+                            <div>{item.item_name}</div>
+                            <div>₹{item.item_price} × {item.quantity}</div>
 
-            <input
-              placeholder="Customer Name"
-              value={orderDetails.customer_name}
-              onChange={(e) =>
-                setOrderDetails({ ...orderDetails, customer_name: e.target.value })
-              }
-              style={{ width: "100%", marginBottom: "10px" }}
-            />
+                            <div style={{ marginTop: "5px" }}>
+                                <button onClick={() => decreaseQty(item.menu_item_id)}>➖</button>
+                                <button onClick={() => increaseQty(item.menu_item_id)}>➕</button>
+                                <button onClick={() => removeItem(item.menu_item_id)}>❌</button>
+                            </div>
+                        </div>
+                    ))}
 
-            <input
-              placeholder="Phone"
-              value={orderDetails.phone}
-              onChange={(e) =>
-                setOrderDetails({ ...orderDetails, phone: e.target.value })
-              }
-              style={{ width: "100%", marginBottom: "10px" }}
-            />
+                    <hr />
+                    <h3>Total: ₹{total}</h3>
 
-            <input
-              placeholder="Table Number"
-              type="number"
-              value={orderDetails.table_number}
-              onChange={(e) =>
-                setOrderDetails({ ...orderDetails, table_number: e.target.value })
-              }
-              style={{ width: "100%", marginBottom: "10px" }}
-            />
+                    <button
+                        onClick={() => setShowForm(true)}
+                        style={{
+                            marginTop: "10px",
+                            padding: "10px",
+                            width: "100%",
+                            background: "green",
+                            color: "white",
+                            border: "none",
+                            cursor: "pointer"
+                        }}
+                    >
+                        Place Order
+                    </button>
+                </>
+            )}
 
-            <textarea
-              placeholder="Notes"
-              value={orderDetails.notes}
-              onChange={(e) =>
-                setOrderDetails({ ...orderDetails, notes: e.target.value })
-              }
-              style={{ width: "100%", marginBottom: "10px" }}
-            />
+            {/* 🔥 MODAL */}
+            {showForm && (
+                <div style={{
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    background: "rgba(0,0,0,0.5)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center"
+                }}>
+                    <div style={{
+                        background: "white",
+                        padding: "20px",
+                        borderRadius: "10px",
+                        width: "320px"
+                    }}>
+                        <h3>Order Details</h3>
 
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <button onClick={placeOrder}>Confirm</button>
-              <button onClick={() => setShowForm(false)}>Cancel</button>
-            </div>
-          </div>
+                        {/* 👤 SELECT CUSTOMER */}
+                        <div style={{ marginBottom: "10px" }}>
+                            <input
+                                type="text"
+                                placeholder="🔍 Search customer by name or phone"
+                                value={customerSearch}
+                                onChange={(e) => setCustomerSearch(e.target.value)}
+                                style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #ccc",
+                                    marginBottom: "5px"
+                                }}
+                            />
+
+                            <div style={{
+                                maxHeight: "120px",
+                                overflowY: "auto",
+                                border: "1px solid #ccc",
+                                borderRadius: "6px"
+                            }}>
+                                <div
+                                    onClick={() => setSelectedCustomerId("")}
+                                    style={{
+                                        padding: "8px",
+                                        cursor: "pointer",
+                                        background: selectedCustomerId === "" ? "#eee" : "#fff"
+                                    }}
+                                >
+                                    Walk-in Customer
+                                </div>
+
+                                {filteredCustomers.map(c => (
+                                    <div
+                                        key={c.customer_id}
+                                        onClick={() => setSelectedCustomerId(c.customer_id)}
+                                        style={{
+                                            padding: "8px",
+                                            cursor: "pointer",
+                                            background:
+                                                selectedCustomerId === c.customer_id ? "#dff0ff" : "#fff",
+                                            borderTop: "1px solid #eee"
+                                        }}
+                                    >
+                                        👤 {c.customer_name} <br />
+                                        <small>📞 {c.customer_phone || "No phone"}</small>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ➕ NEW CUSTOMER */}
+                        <button
+                            onClick={() => setShowNewCustomerForm(!showNewCustomerForm)}
+                            style={{ marginBottom: "10px" }}
+                        >
+                            ➕ Add New Customer
+                        </button>
+
+                        {showNewCustomerForm && (
+                            <>
+                                <input
+                                    placeholder="Customer Name"
+                                    value={newCustomer.name}
+                                    onChange={(e) =>
+                                        setNewCustomer({ ...newCustomer, name: e.target.value })
+                                    }
+                                    style={{ width: "100%", marginBottom: "10px" }}
+                                />
+
+                                <input
+                                    placeholder="Phone"
+                                    value={newCustomer.phone}
+                                    onChange={(e) =>
+                                        setNewCustomer({ ...newCustomer, phone: e.target.value })
+                                    }
+                                    style={{ width: "100%", marginBottom: "10px" }}
+                                />
+                            </>
+                        )}
+
+                        <input
+                            placeholder="Table Number"
+                            type="number"
+                            value={orderDetails.table_number}
+                            onChange={(e) =>
+                                setOrderDetails({ ...orderDetails, table_number: e.target.value })
+                            }
+                            style={{ width: "100%", marginBottom: "10px" }}
+                        />
+
+                        <textarea
+                            placeholder="Notes"
+                            value={orderDetails.notes}
+                            onChange={(e) =>
+                                setOrderDetails({ ...orderDetails, notes: e.target.value })
+                            }
+                            style={{ width: "100%", marginBottom: "10px" }}
+                        />
+
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                            <button onClick={placeOrder}>Confirm</button>
+                            <button onClick={() => setShowForm(false)}>Cancel</button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
         </div>
-      )}
-
-    </div>
-  );
+    );
 }
 
 export default Cart;

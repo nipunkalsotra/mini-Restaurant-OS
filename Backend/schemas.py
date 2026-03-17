@@ -106,6 +106,7 @@ class OrderResponse(BaseModel):
     order_id : int
     restaurant_id : int
     customer_id : Optional[int]= None
+    customer_name : Optional[str] = None
     table_number : Optional[int] = None
     total_amount : float
     status : OrderStatus
