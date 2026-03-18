@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 from database import Base
 from sqlalchemy import Enum
-from schemas import OrderStatus
+from schemas import OrderStatus, PaymentStatus
 
 class Restaurant(Base):
     __tablename__ = "restaurants"
@@ -94,6 +94,7 @@ class Order(Base):
     table_number = Column(Integer)
     total_amount = Column(Float, default=0)
     status = Column(Enum(OrderStatus), default= OrderStatus.pending, nullable= False)
+    payment_status = Column(Enum(PaymentStatus), default= PaymentStatus.unpaid, nullable= False)
     payment_method = Column(Text, nullable= False)
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)

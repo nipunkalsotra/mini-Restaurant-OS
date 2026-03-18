@@ -89,6 +89,10 @@ class PaymentMethod(str, Enum):
     upi = "upi"
     card = "card"
 
+class PaymentStatus(str, Enum):
+    unpaid = "unpaid"
+    paid = "paid"
+
 class OrderItemCreateForOrder(BaseModel):
     menu_item_id : int
     quantity : int
@@ -98,6 +102,7 @@ class OrderCreate(BaseModel):
     customer_id : Optional[int] = None
     table_number : Optional[int] = None
     status : OrderStatus
+    payment_status : PaymentStatus
     payment_method : PaymentMethod
     notes : Optional[str] = None
     items : List[OrderItemCreateForOrder]
@@ -110,6 +115,7 @@ class OrderResponse(BaseModel):
     table_number : Optional[int] = None
     total_amount : float
     status : OrderStatus
+    payment_status : PaymentStatus
     payment_method : PaymentMethod
     notes : Optional[str] = None
     created_at : datetime
@@ -120,6 +126,7 @@ class OrderResponse(BaseModel):
 
 class OrderUpdate(BaseModel):
     status: Optional[str] = None
+    payment_status: Optional[PaymentStatus] = None
     payment_method: Optional[str] = None
     notes: Optional[str] = None
 

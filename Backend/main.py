@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import models
 import schemas
-from schemas import OrderStatus
+from schemas import OrderStatus, PaymentStatus
 from database import get_db, engine
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -246,6 +246,7 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         customer_id = order.customer_id,
         table_number = order.table_number,
         status = order.status,
+        payment_status = order.payment_status,
         payment_method = order.payment_method,
         notes = order.notes,
         total_amount = 0
@@ -300,9 +301,12 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 def get_order(db : Session = Depends(get_db)):
     orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
 
+    for order in orders:
+        order.customer_name = order.customer.customer_name if order.customer else None
+
     return orders
 
-@app.get("/orders/kitchen", response_model= list[schemas.OrderResponse])
+@app.get("/orders/kitchen", response_model= list[schemas.OrderDetailResponse])
 def  get_kitchen_orders(db : Session = Depends(get_db)):
     orders = db.query(models.Order).filter(
         models.Order.status.in_([
@@ -312,7 +316,22 @@ def  get_kitchen_orders(db : Session = Depends(get_db)):
         ])
     ).order_by(models.Order.created_at).all()
 
-    return orders
+    response = []
+    for order in orders:
+        order_items = db.query(models.OrderItem).filter(
+            models.OrderItem.order_id == order.order_id
+        ).all()
+
+        order_response = schemas.OrderResponse.from_orm(order)
+        order_response.customer_name = order.customer.customer_name if order.customer else None
+
+        response.append(
+            schemas.OrderDetailResponse(
+                order=order_response,
+                items=order_items
+            )
+        )
+    return response
 
 @app.get("/orders/{order_id}", response_model= schemas.OrderDetailResponse)
 def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
@@ -323,14 +342,15 @@ def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
     if not order:
         raise HTTPException(status_code= 404, detail= "Order not Found")
     
-    order.customer_name = order.customer.customer_name if order.customer else None
-    
     order_items = db.query(models.OrderItem).filter(
         models.OrderItem.order_id == order_id
     ).all()
 
+    order_response = schemas.OrderResponse.from_orm(order)
+    order_response.customer_name = order.customer.customer_name if order.customer else None
+
     return schemas.OrderDetailResponse(
-        order = order,
+        order = order_response,
         items = order_items
     )
 
@@ -353,6 +373,11 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
         OrderStatus.cancelled : []
     }
 
+    PAYMENT_STATUS_TRANSITIONS = {
+        PaymentStatus.unpaid : [PaymentStatus.paid],
+        PaymentStatus.paid : []
+    }
+
     if order.status:
         current_status = db_order.status
         new_status = order.status
@@ -360,6 +385,12 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
         if new_status not in ORDER_STATUS_TRANSITIONS[current_status]:
             raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
         
+    if order.payment_status:
+        current_status = db_order.payment_status
+        new_status = order.payment_status
+        if new_status not in PAYMENT_STATUS_TRANSITIONS[current_status]:
+            raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
+
     if order.status == OrderStatus.cancelled and db_order.status != OrderStatus.cancelled:
         order_items = db.query(models.OrderItem).filter(
             models.OrderItem.order_id == order_id
@@ -376,6 +407,9 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     updated_order = order.dict(exclude_unset=True)
     for key, value in updated_order.items():
         setattr(db_order, key, value)
+
+    if db_order.status == OrderStatus.served and db_order.payment_status == PaymentStatus.paid:
+        db_order.status = OrderStatus.completed
 
     db.commit()
     db.refresh(db_order)

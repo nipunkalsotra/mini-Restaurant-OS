@@ -198,40 +198,23 @@ function MenuPage() {
                   background: "#fff",
                   padding: "15px",
                   borderRadius: "12px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  borderTop:
-                    item.stock === 0
-                      ? "5px solid #e74c3c"
-                      : item.stock < 5
-                      ? "5px solid #f39c12"
-                      : "5px solid #2ecc71"
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
                 }}
               >
                 <h3>{item.item_name}</h3>
-
                 <p><b>₹{item.item_price}</b></p>
-
-                <p style={{ fontSize: "13px", color: "#555" }}>
-                  {item.stock === 0
-                    ? "❌ Out of Stock"
-                    : item.stock < 5
-                      ? "⚠️ Low Stock"
-                      : `Stock: ${item.stock}`}
-                </p>
 
                 <button
                   onClick={() => addToCart(item)}
-                  disabled={item.stock === 0}
                   style={{
                     marginTop: "10px",
                     padding: "6px 10px",
                     width: "100%",
                     border: "none",
                     borderRadius: "6px",
-                    background: item.stock === 0 ? "#ccc" : "#2ecc71",
+                    background: "#2ecc71",
                     color: "#fff",
-                    cursor:
-                      item.stock === 0 ? "not-allowed" : "pointer"
+                    cursor: "pointer"
                   }}
                 >
                   ➕ Add to Cart
