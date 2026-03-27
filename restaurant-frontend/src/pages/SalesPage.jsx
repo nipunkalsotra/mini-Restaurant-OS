@@ -98,7 +98,11 @@ function SalesPage() {
                 <h2>Order Status</h2>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                     {Object.entries(sales.status_counts).map(([status, count]) => (
-                        <div key={status} style={statusCard}>
+                        <div
+                            key={status}
+                            style={{ ...statusCard, cursor: "pointer" }}
+                            onClick={() => navigate(`/orders?status=${status}&restaurant=${selectedRestaurant}`)}
+                        >
                             <strong>{status.toUpperCase()}</strong>
                             <p>{count}</p>
                         </div>

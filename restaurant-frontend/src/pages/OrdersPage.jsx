@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 function OrdersPage() {
   const [orders, setOrders] = useState([]);
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get("status") || "all";
+  const restaurantId = searchParams.get("restaurant");
+
+  const [selectedStatus, setSelectedStatus] = useState(initialStatus);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
@@ -59,14 +63,19 @@ function OrdersPage() {
 
   const filteredOrders = orders.filter((o) => {
     const search = searchTerm.toLowerCase();
+
     const matchesSearch =
       o.order_id.toString().includes(search) ||
       (o.table_number || "").toString().includes(search) ||
       (o.customer_name || "").toLowerCase().includes(search);
 
-    const matchesStatus = selectedStatus === "all" || o.status === selectedStatus;
+    const matchesStatus =
+      selectedStatus === "all" || o.status === selectedStatus;
 
-    return matchesSearch && matchesStatus;
+    const matchesRestaurant =
+      !restaurantId || o.restaurant_id === parseInt(restaurantId);
+
+    return matchesSearch && matchesStatus && matchesRestaurant;
   });
 
   const getCount = (status) => {
@@ -79,6 +88,9 @@ function OrdersPage() {
   return (
     <div style={{ padding: "20px" }}>
       <h1>📦 Orders Dashboard</h1>
+      <h2>
+        Showing: {selectedStatus.toUpperCase()} Orders
+      </h2>
       <h2 style={{ marginTop: "10px" }}>💰 Total Revenue: ₹{grandTotal}</h2>
 
       <div style={{ margin: "15px 0" }}>
@@ -146,7 +158,7 @@ function OrdersPage() {
 
               {o.notes && <p style={{ fontSize: "13px", color: "#555" }}>📝 {o.notes}</p>}
 
-              {o.status !== "cancelled" && o.status !== "completed" && (
+              {o.status === "pending" && (
                 <button
                   onClick={(e) => { e.stopPropagation(); cancelOrder(o.order_id); }}
                   style={{

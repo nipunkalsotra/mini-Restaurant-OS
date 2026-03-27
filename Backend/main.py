@@ -366,7 +366,7 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     
     ORDER_STATUS_TRANSITIONS = {
         OrderStatus.pending : [OrderStatus.preparing, OrderStatus.cancelled],
-        OrderStatus.preparing : [OrderStatus.ready, OrderStatus.cancelled],
+        OrderStatus.preparing : [OrderStatus.ready],
         OrderStatus.ready : [OrderStatus.served],
         OrderStatus.served : [OrderStatus.completed],
         OrderStatus.completed : [],
