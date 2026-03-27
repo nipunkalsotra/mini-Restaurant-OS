@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { FaUtensils, FaClipboardList, FaUsers, FaChartLine, FaConciergeBell } from "react-icons/fa";
+import { FaUtensils, FaClipboardList, FaUsers, FaChartLine, FaConciergeBell, FaMoneyCheckAlt } from "react-icons/fa"; // ✅ added icon for billing
 
 function Sidebar() {
   const linkStyle = {
@@ -50,6 +50,11 @@ function Sidebar() {
 
         <NavLink to="/kitchen" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
           <FaConciergeBell /> Kitchen
+        </NavLink>
+
+        {/* ✅ Billing Page Link */}
+        <NavLink to="/billing" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaMoneyCheckAlt /> Billing
         </NavLink>
       </nav>
     </div>

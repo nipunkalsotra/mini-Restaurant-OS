@@ -66,6 +66,7 @@ function CustomerDetailPage() {
                             <th>Order ID</th>
                             <th>Table</th>
                             <th>Status</th>
+                            <th>Payment Status</th> {/* ✅ Added */}
                             <th>Total</th>
                             <th>Date</th>
                         </tr>
@@ -90,6 +91,7 @@ function CustomerDetailPage() {
                                 <td>{o.order_id}</td>
                                 <td>{o.table_number || "N/A"}</td>
                                 <td>{o.status}</td>
+                                <td>{o.payment_status}</td> {/* ✅ Added */}
                                 <td>₹{o.total_amount}</td>
                                 <td>
                                     {new Date(o.created_at).toLocaleString()}

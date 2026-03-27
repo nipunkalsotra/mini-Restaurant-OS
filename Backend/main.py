@@ -290,7 +290,7 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_order)
 
-        return new_order
+        return schemas.OrderResponse.from_orm(new_order)
     
     except Exception as e:
         db.rollback()
@@ -304,7 +304,7 @@ def get_order(db : Session = Depends(get_db)):
     for order in orders:
         order.customer_name = order.customer.customer_name if order.customer else None
 
-    return orders
+    return [schemas.OrderResponse.from_orm(o) for o in orders]
 
 @app.get("/orders/kitchen", response_model= list[schemas.OrderDetailResponse])
 def  get_kitchen_orders(db : Session = Depends(get_db)):
@@ -414,7 +414,7 @@ def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depend
     db.commit()
     db.refresh(db_order)
 
-    return db_order
+    return schemas.OrderResponse.from_orm(db_order)
 
 @app.get("/orders/filter", response_model= list[schemas.OrderResponse])
 def get_order_history(status : OrderStatus | None = None, db : Session = Depends(get_db)):

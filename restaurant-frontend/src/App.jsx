@@ -9,6 +9,7 @@ import SalesPage from "./pages/SalesPage";
 import KitchenPage from "./pages/KitchenPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage"
+import BillingPage from "./pages/BillingPage"
 
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/kitchen" element={<KitchenPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+            <Route path="/billing" element={<BillingPage />} />
           </Routes>
         </div>
 

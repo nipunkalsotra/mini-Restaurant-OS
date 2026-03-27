@@ -89,6 +89,7 @@ function Cart({ cart, setCart }) {
                 table_number: Number(orderDetails.table_number),
                 status: "pending",
                 payment_method: "cash",
+                payment_status: "unpaid",
                 notes: orderDetails.notes,
                 items: cart.map(item => ({
                     menu_item_id: item.menu_item_id,

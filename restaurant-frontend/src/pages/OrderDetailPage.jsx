@@ -35,6 +35,7 @@ function OrderDetailPage() {
                 <p><b>🍽 Table:</b> {order.table_number || "N/A"}</p>
                 <p><b>📌 Status:</b> {order.status}</p>
                 <p><b>💳 Payment:</b> {order.payment_method}</p>
+                <p><b>💵 Payment Status:</b> {order.payment_status}</p>
                 <p><b>💰 Total:</b> ₹{order.total_amount}</p>
 
                 {order.notes && (
