@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState } from "react";
 
 import Sidebar from "./components/Sidebar";
 
@@ -8,11 +9,13 @@ import CustomersPage from "./pages/CustomersPage";
 import SalesPage from "./pages/SalesPage";
 import KitchenPage from "./pages/KitchenPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
-import CustomerDetailPage from "./pages/CustomerDetailPage"
-import BillingPage from "./pages/BillingPage"
-
+import CustomerDetailPage from "./pages/CustomerDetailPage";
+import BillingPage from "./pages/BillingPage";
 
 function App() {
+
+  const [cart, setCart] = useState([]); // ✅ GLOBAL CART
+
   return (
     <BrowserRouter>
       <div style={{ display: "flex" }}>
@@ -21,6 +24,12 @@ function App() {
 
         <div style={{ flex: 1, padding: "20px" }}>
           <Routes>
+
+            <Route
+              path="/"
+              element={<MenuPage cart={cart} setCart={setCart} />}
+            />
+            
             <Route path="/" element={<MenuPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/customers" element={<CustomersPage />} />
@@ -28,7 +37,8 @@ function App() {
             <Route path="/kitchen" element={<KitchenPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
-            <Route path="/billing" element={<BillingPage />} />
+            <Route path="/billing" element={<BillingPage cart={cart} setCart={setCart} />}/>
+
           </Routes>
         </div>
 

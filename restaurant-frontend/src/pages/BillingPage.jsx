@@ -1,132 +1,208 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import API from "../api/api";
 
 function BillingPage() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
-      const res = await API.get("/orders/filter"); // fetch all orders or filter ?payment_status=unpaid
-      setOrders(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  // Load cart from state first, fallback to localStorage
+  const [cart, setCart] = useState([]);
+  useEffect(() => {
+    if (location.state?.cart) {
+      setCart(location.state.cart);
+    } else {
+      const saved = localStorage.getItem("cart");
+      if (saved) setCart(JSON.parse(saved));
     }
-  };
+  }, [location.state]);
+
+  const [customers, setCustomers] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
+  const [orderDetails, setOrderDetails] = useState({
+    table_number: "",
+    notes: "",
+    payment_method: "cash",
+  });
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
+    API.get("/customers")
+      .then(res => setCustomers(res.data))
+      .catch(err => console.error(err));
   }, []);
 
-  const markAsPaid = async (orderId) => {
-    try {
-      await API.put(`/orders/${orderId}`, { payment_status: "paid" });
-      fetchOrders();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update payment status");
-    }
-  };
-
-  const filteredOrders = orders.filter((o) => {
-    const search = searchTerm.toLowerCase();
+  const filteredCustomers = customers.filter(c => {
+    const search = customerSearch.toLowerCase();
     return (
-      o.order_id.toString().includes(search) ||
-      (o.table_number || "").toString().includes(search) ||
-      (o.customer_name || "").toLowerCase().includes(search)
+      c.customer_name.toLowerCase().includes(search) ||
+      (c.customer_phone || "").includes(search)
     );
   });
 
-  const cardStyle = {
-    padding: "15px",
-    borderRadius: "12px",
-    background: "#fff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    marginBottom: "15px",
-    borderTop: "5px solid #2ecc71",
+  const total = cart.reduce((sum, item) => sum + item.item_price * item.quantity, 0);
+
+  const placeOrder = async (paymentType) => {
+    if (cart.length === 0) {
+      alert("Cart is empty!");
+      return;
+    }
+
+    try {
+      let customer_id = selectedCustomerId;
+
+      if (showNewCustomerForm && !newCustomer.name) {
+        alert("Customer name required");
+        return;
+      }
+
+      if (showNewCustomerForm) {
+        const res = await API.post("/customers", {
+          restaurant_id: cart[0]?.restaurant_id || 1,
+          customer_name: newCustomer.name,
+          customer_phone: newCustomer.phone
+        });
+        customer_id = res.data.customer_id;
+      }
+
+      const payload = {
+        restaurant_id: cart[0]?.restaurant_id || 1,
+        customer_id: customer_id ? Number(customer_id) : null,
+        table_number: orderDetails.table_number ? Number(orderDetails.table_number) : null,
+        status: "pending",
+        payment_method: paymentType === "paylater" ? "cash" : orderDetails.payment_method,
+        payment_status: paymentType === "paylater" ? "unpaid" : "paid",
+        notes: orderDetails.notes,
+        items: cart.map(item => ({ menu_item_id: item.menu_item_id, quantity: item.quantity }))
+      };
+
+      await API.post("/orders", payload);
+
+      // ✅ CLEAR cart and localStorage FIRST
+      localStorage.removeItem("cart");
+      setCart([]);
+
+      // ✅ THEN navigate
+      if (paymentType === "paylater") {
+        navigate("/"); // back to menu
+      } else {
+        navigate(`/billing/${payload.customer_id || "new"}`); // pay now flow
+      }
+
+    } catch (err) {
+      console.error(err.response?.data);
+      alert(err.response?.data?.detail || "❌ Failed to place order");
+    }
   };
 
-  if (loading) return <p>Loading billing orders...</p>;
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>💰 Billing Dashboard</h1>
-
-      <div style={{ margin: "15px 0" }}>
-        <input
-          type="text"
-          placeholder="🔍 Search by Order ID / Table / Customer"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            padding: "8px",
-            width: "300px",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-          }}
-        />
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        {filteredOrders.length === 0 && <p>No orders found</p>}
-
-        {filteredOrders.map((o) => (
-          <div key={o.order_id} style={cardStyle}>
-            <h3>🧾 Order #{o.order_id}</h3>
-            <p>
-              <b>🍽 Table:</b> {o.table_number || "N/A"}
-            </p>
-            <p>
-              <b>👤 Customer:</b> {o.customer_name || "Walk-in"}
-            </p>
-            <p>
-              <b>💳 Payment Method:</b> {o.payment_method}
-            </p>
-            <p>
-              <b>💰 Total Amount:</b> ₹{o.total_amount}
-            </p>
-            <p>
-              <b>📌 Status:</b> {o.status}
-            </p>
-            <p>
-              <b>💲 Payment Status:</b> {o.payment_status}
-            </p>
-
-            <div style={{ marginTop: "10px", marginBottom: "10px" }}>
-              <b>Order Items:</b>
-              {o.items?.map((item) => (
-                <p key={item.order_item_id} style={{ margin: "2px 0" }}>
-                  🍽 {item.item_name} x {item.quantity}
-                </p>
-              ))}
-            </div>
-
-            {o.payment_status === "unpaid" && (
-              <button
-                onClick={() => markAsPaid(o.order_id)}
-                style={{
-                  padding: "6px 10px",
-                  background: "#2ecc71",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                Mark as Paid
-              </button>
-            )}
+    <div style={{ display: "flex", height: "100vh" }}>
+      {/* LEFT */}
+      <div style={{ flex: 1, padding: "20px", borderRight: "2px solid #ddd" }}>
+        <h2>🧾 Order Summary</h2>
+        {cart.map(item => (
+          <div key={item.menu_item_id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+            <div>{item.item_name} × {item.quantity}</div>
+            <div>₹{item.item_price * item.quantity}</div>
           </div>
         ))}
+        <hr />
+        <h3>Total: ₹{total}</h3>
       </div>
+
+      {/* RIGHT */}
+      <div style={{ flex: 1, padding: "20px" }}>
+        <h2>💳 Billing Details</h2>
+        <input
+          type="text"
+          placeholder="Search customer..."
+          value={customerSearch}
+          onChange={e => setCustomerSearch(e.target.value)}
+          style={{ width: "100%", marginBottom: "10px" }}
+        />
+
+        <div style={{ maxHeight: "150px", overflowY: "auto", border: "1px solid #ccc", marginBottom: "10px" }}>
+          <div
+            onClick={() => setSelectedCustomerId("")}
+            style={{ padding: "8px", cursor: "pointer", background: selectedCustomerId === "" ? "#eee" : "#fff" }}
+          >
+            Walk-in Customer
+          </div>
+          {filteredCustomers.map(c => (
+            <div
+              key={c.customer_id}
+              onClick={() => setSelectedCustomerId(c.customer_id)}
+              style={{ padding: "8px", cursor: "pointer", background: selectedCustomerId === c.customer_id ? "#dff0ff" : "#fff" }}
+            >
+              {c.customer_name} ({c.customer_phone})
+            </div>
+          ))}
+        </div>
+
+        <button onClick={() => setShowNewCustomerForm(!showNewCustomerForm)}>➕ Add New Customer</button>
+        {showNewCustomerForm && (
+          <>
+            <input placeholder="Name" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} style={{ width: "100%", marginTop: "10px" }} />
+            <input placeholder="Phone" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} style={{ width: "100%", marginTop: "10px" }} />
+          </>
+        )}
+
+        <input type="number" placeholder="Table Number" value={orderDetails.table_number} onChange={e => setOrderDetails({ ...orderDetails, table_number: e.target.value })} style={{ width: "100%", marginTop: "10px" }} />
+        <textarea placeholder="Notes" value={orderDetails.notes} onChange={e => setOrderDetails({ ...orderDetails, notes: e.target.value })} style={{ width: "100%", marginTop: "10px" }} />
+
+        <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+          <button onClick={() => setShowPaymentModal(true)} style={{ background: "#2ecc71", color: "#fff", padding: "10px", border: "none", borderRadius: "6px" }}>Proceed →</button>
+          <button onClick={() => navigate(-1)}>⬅ Back</button>
+        </div>
+      </div>
+
+      {/* PAYMENT MODAL */}
+      {showPaymentModal && (
+        <Modal>
+          <h3>Select Payment Flow</h3>
+          <button onClick={() => placeOrder("paylater")}>🕓 Pay Later</button>
+          <button onClick={() => setShowPaymentModal("method")}>💳 Pay Now</button>
+          <button onClick={() => setShowPaymentModal(false)}>Cancel</button>
+        </Modal>
+      )}
+
+      {showPaymentModal === "method" && (
+        <Modal>
+          <h3>Select Payment Method</h3>
+          <button onClick={() => { setOrderDetails({ ...orderDetails, payment_method: "cash" }); placeOrder("paynow"); }}>Cash</button>
+          <button onClick={() => { setOrderDetails({ ...orderDetails, payment_method: "upi" }); placeOrder("paynow"); }}>UPI</button>
+          <button onClick={() => { setOrderDetails({ ...orderDetails, payment_method: "card" }); placeOrder("paynow"); }}>Card</button>
+          <button onClick={() => setShowPaymentModal(false)}>Cancel</button>
+        </Modal>
+      )}
     </div>
   );
 }
+
+const Modal = ({ children }) => (
+  <div style={{
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,0.4)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center"
+  }}>
+    <div style={{
+      background: "#fff",
+      padding: "20px",
+      borderRadius: "10px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      width: "300px"
+    }}>
+      {children}
+    </div>
+  </div>
+);
 
 export default BillingPage;
