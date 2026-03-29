@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
 function Cart({ cart, setCart}) {
-
     const navigate = useNavigate();
 
     // ✅ Increase quantity
@@ -28,11 +27,19 @@ function Cart({ cart, setCart}) {
         );
     };
 
-    // ✅ Remove item
+    // ✅ Remove single item
     const removeItem = (id) => {
         setCart(prev =>
             prev.filter(item => item.menu_item_id !== id)
         );
+    };
+
+    // ✅ Clear entire cart
+    const clearCart = () => {
+        if (cart.length === 0) return;
+        if (window.confirm("Are you sure you want to empty the cart?")) {
+            setCart([]);
+        }
     };
 
     // ✅ Total
@@ -49,7 +56,7 @@ function Cart({ cart, setCart}) {
         }
 
         navigate("/billing", {
-            state: { cart, clearCart : true },
+            state: { cart },
         }); 
     };
 
@@ -60,7 +67,24 @@ function Cart({ cart, setCart}) {
             padding: "15px",
             background: "#fff"
         }}>
-            <h2>🛒 Cart</h2>
+            {/* Cart header with clear button */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <h2>🛒 Cart</h2>
+                {cart.length > 0 && (
+                    <button 
+                        onClick={clearCart} 
+                        style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "18px"
+                        }}
+                        title="Clear Cart"
+                    >
+                        🗑
+                    </button>
+                )}
+            </div>
 
             {cart.length === 0 ? (
                 <p>No items</p>

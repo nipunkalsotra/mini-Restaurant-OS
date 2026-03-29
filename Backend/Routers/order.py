@@ -107,6 +107,33 @@ def  get_kitchen_orders(db : Session = Depends(get_db)):
         )
     return response
 
+@router.get("/billing/pending", response_model= list[schemas.OrderDetailResponse])
+def get_pending_billing_orders(db : Session = Depends(get_db)):
+    pending_orders = db.query(models.Order).filter(
+        models.Order.status == OrderStatus.served,
+        models.Order.payment_status == PaymentStatus.unpaid
+    ).order_by(
+        models.Order.created_at.desc()
+        ).all()
+
+    response = []
+    for order in pending_orders:
+        order_items = db.query(models.OrderItem).filter(
+            models.OrderItem.order_id == order.order_id
+        ).all()
+
+        order_response = schemas.OrderResponse.from_orm(order)
+        order_response.customer_name = order.customer.customer_name if order.customer else None
+
+        response.append(
+            schemas.OrderDetailResponse(
+                order = order_response,
+                items = order_items
+            )
+        )
+
+    return response or []
+
 @router.get("/{order_id}", response_model= schemas.OrderDetailResponse)
 def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
     order = db.query(models.Order).filter(
