@@ -40,7 +40,7 @@ function BillingPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
-
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [orderDetails, setOrderDetails] = useState({
     table_number: "",
     notes: "",
@@ -128,7 +128,16 @@ function BillingPage() {
         }))
       };
 
-      await API.post("/orders", payload);
+      if (selectedOrderId) {
+        // update existing order
+        await API.put(`/orders/${selectedOrderId}`, {
+          payment_status: PAYMENT_STATUS.paid,
+          payment_method: orderDetails.payment_method
+        });
+      } else {
+        // new order
+        await API.post("/orders", payload);
+      }
 
       localStorage.removeItem("cart");
       setCart([]);
@@ -144,20 +153,27 @@ function BillingPage() {
     }
   };
 
-  // --- MARK ORDER AS PAID ---
-  const markPaid = async (orderId) => {
-    try {
-      await API.put(`/orders/${orderId}`, {
-        payment_status: PAYMENT_STATUS.paid
-      });
+  const handleSelectPendingOrder = (o) => {
+    setSelectedOrderId(Number(o.order.order_id));
+    // 🛒 Load cart
+    const formattedCart = o.items.map(i => ({
+      menu_item_id: i.menu_item_id,
+      item_name: i.item_name,
+      quantity: i.quantity,
+      item_price: i.price_at_order
+    }));
 
-      fetchPendingOrders(); // 🔥 best practice
+    setCart(formattedCart);
 
-      alert("✅ Payment marked as paid");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to mark payment");
-    }
+    // 👤 Customer
+    setSelectedCustomerId(o.order.customer_id || "");
+
+    // 📋 Order details
+    setOrderDetails({
+      table_number: o.order.table_number || "",
+      notes: o.order.notes || "",
+      payment_method: o.order.payment_method || "cash"
+    });
   };
 
   return (
@@ -175,7 +191,9 @@ function BillingPage() {
         background: "#fff",
         overflowY: "auto"
       }}>
-        <h2>🧾 Order Summary</h2>
+        <h2>
+          🧾 Order Summary | Selected: {selectedOrderId}
+        </h2>
 
         {cart.length === 0 ? (
           <p>No items in cart</p>
@@ -322,7 +340,8 @@ function BillingPage() {
       }}>
         <PendingOrdersPanel
           pendingOrders={pendingOrders}
-          markPaid={markPaid}
+          onSelectOrder={handleSelectPendingOrder}
+          selectedOrderId={selectedOrderId}
         />
       </div>
       {showPaymentModal && (

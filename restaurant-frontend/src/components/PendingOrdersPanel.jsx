@@ -1,69 +1,172 @@
-function PendingOrdersPanel({ pendingOrders, markPaid }) {
-    const totalPendingAmount = pendingOrders.reduce(
-        (sum, o) => sum + (o.order?.total_amount || 0),
-        0
-    );
-    return (
-        <div style={{ padding: "15px" }}>
-            <h3 style={{ padding: "10px" }}>🕓 Pending Payments</h3>
+import { useState } from "react";
 
-            <div style={{
-                padding: "10px",
-                background: "#fff3cd",
-                borderBottom: "1px solid #ddd",
-                fontWeight: "bold"
-            }}>
-                Total Pending: ₹{totalPendingAmount}
-            </div>
+function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
 
-            {pendingOrders.length === 0 ? (
-                <p>No pending orders</p>
-            ) : (
-                pendingOrders.map(o => (
-                    <div key={o.order.order_id} style={{
-                        border: "1px solid #eee",
-                        borderRadius: "8px",
-                        padding: "10px",
-                        marginBottom: "10px",
-                        background: "#fafafa"
-                    }}>
-                        <b>Order #{o.order.order_id}</b>
-                        <div style={{ fontSize: "12px", color: "#555" }}>
-                            Table {o.order.table_number || "N/A"} • {o.order.customer_name}
-                        </div>
+  const [search, setSearch] = useState("");
 
-                        <ul style={{ paddingLeft: "18px", marginTop: "5px" }}>
-                            {o.items.map(i => (
-                                <li key={i.menu_item_id}>
-                                    {i.item_name} × {i.quantity}
-                                </li>
-                            ))}
-                        </ul>
+  // 🔍 FILTER LOGIC
+  const filteredOrders = pendingOrders.filter(o =>
+    (o.order.customer_name || "walk-in")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
-                        <div style={{ fontWeight: "bold", marginTop: "5px" }}>
-                            ₹{o.order.total_amount}
-                        </div>
+  const totalPendingAmount = filteredOrders.reduce(
+    (sum, o) => sum + (o.order?.total_amount || 0),
+    0
+  );
 
-                        <button
-                            onClick={() => markPaid(o.order.order_id)}
-                            style={{
-                                marginTop: "8px",
-                                width: "100%",
-                                background: "#2ecc71",
-                                color: "#fff",
-                                border: "none",
-                                padding: "6px",
-                                borderRadius: "5px",
-                                cursor: "pointer"
-                            }}
-                        >
-                            Mark Paid
-                        </button>
+  return (
+    <div style={{
+      height: "100%",
+      display: "flex",
+      flexDirection: "column"
+    }}>
+
+      {/* HEADER */}
+      <div style={{
+        padding: "15px",
+        borderBottom: "1px solid #eee",
+        fontWeight: "bold",
+        fontSize: "18px"
+      }}>
+        🕓 Pending Payments
+      </div>
+
+      {/* 🔍 SEARCH BAR */}
+      <div style={{ padding: "10px" }}>
+        <input
+          type="text"
+          placeholder="Search by customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "8px",
+            borderRadius: "6px",
+            border: "1px solid #ccc"
+          }}
+        />
+      </div>
+
+      {/* TOTAL */}
+      <div style={{
+        margin: "10px",
+        padding: "12px",
+        background: "#ffeaa7",
+        borderRadius: "10px",
+        fontWeight: "bold",
+        textAlign: "center"
+      }}>
+        💰 ₹{totalPendingAmount} Pending
+      </div>
+
+      {/* LIST */}
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px"
+      }}>
+
+        {filteredOrders.length === 0 ? (
+          <p style={{ textAlign: "center" }}>No matching orders</p>
+        ) : (
+          filteredOrders.map(o => {
+
+            const isSelected =
+              Number(selectedOrderId) === Number(o.order.order_id);
+
+            return (
+              <div
+                key={o.order.order_id}
+                onClick={() => onSelectOrder(o)}
+
+                // 🔥 HOVER + SELECT EFFECT
+                style={{
+                  background: isSelected ? "#d0ebff" : "#fff",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  border: isSelected ? "2px solid #3498db" : "1px solid #eee",
+                  boxShadow: isSelected
+                    ? "0 4px 12px rgba(52,152,219,0.3)"
+                    : "0 2px 8px rgba(0,0,0,0.08)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease"
+                }}
+
+                // 👇 HOVER EFFECT
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.transform = "scale(1.02)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0,0,0,0.15)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow =
+                      "0 2px 8px rgba(0,0,0,0.08)";
+                  }
+                }}
+              >
+
+                {/* TOP ROW */}
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontWeight: "bold"
+                }}>
+                  <span>Order #{o.order.order_id}</span>
+                  <span>₹{o.order.total_amount}</span>
+                </div>
+
+                {/* SUB INFO */}
+                <div style={{ fontSize: "13px", color: "#555" }}>
+                  Table: {o.order.table_number || "N/A"} |{" "}
+                  {o.order.customer_name || "Walk-in"}
+                </div>
+
+                {/* ITEMS */}
+                <div style={{
+                  fontSize: "13px",
+                  color: "#333",
+                  background: "#fafafa",
+                  padding: "8px",
+                  borderRadius: "6px"
+                }}>
+                  {o.items?.map(i => (
+                    <div key={i.menu_item_id}>
+                      {i.item_name} × {i.quantity}
                     </div>
-                ))
-            )}
-        </div>
-    );
+                  ))}
+                </div>
+
+                {/* ACTIVE BADGE */}
+                {isSelected && (
+                  <div style={{
+                    fontSize: "12px",
+                    color: "#3498db",
+                    fontWeight: "bold"
+                  }}>
+                    ● Active Order
+                  </div>
+                )}
+
+              </div>
+            );
+          })
+        )}
+
+      </div>
+    </div>
+  );
 }
 
 export default PendingOrdersPanel;
