@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
 import { useNavigate } from "react-router-dom";
+import DataFilter from "../components/DataFilter";
 
 
 function CustomersPage() {
@@ -8,15 +9,29 @@ function CustomersPage() {
     const [restaurants, setRestaurants] = useState([]);
     const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [dateFilter, setDateFilter] = useState({
+        range: "all",
+        startDate: "",
+        endDate: ""
+    });
 
     const navigate = useNavigate();
 
-    // Fetch customers
     useEffect(() => {
-        API.get("/customers")
+        const params = {};
+
+        if (dateFilter.startDate && dateFilter.endDate) {
+            params.start_date = dateFilter.startDate;
+            params.end_date = dateFilter.endDate;
+        } else if (dateFilter.range && dateFilter.range !== "all") {
+            params.range = dateFilter.range;
+        }
+
+        API.get("/customers", { params })
             .then(res => setCustomers(res.data))
             .catch(err => console.error(err));
-    }, []);
+
+    }, [dateFilter]);
 
     // Fetch restaurants
     useEffect(() => {
@@ -41,6 +56,8 @@ function CustomersPage() {
     return (
         <div style={{ padding: "20px" }}>
             <h1>👥 Customers Dashboard</h1>
+
+            <DataFilter onChange={setDateFilter} />
 
             {/* 🔽 FILTERS */}
             <div style={{
@@ -84,7 +101,10 @@ function CustomersPage() {
             </div>
 
             {/* 📊 COUNT */}
-            <h3>Total Customers: {filteredCustomers.length}</h3>
+            <h3>
+                Total Customers: {filteredCustomers.length}
+                {dateFilter.range !== "all" && ` (${dateFilter.range})`}
+            </h3>
 
             {/* 🔲 GRID */}
             {filteredCustomers.length === 0 ? (

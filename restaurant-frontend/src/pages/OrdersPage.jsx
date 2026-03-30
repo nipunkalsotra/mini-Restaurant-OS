@@ -1,22 +1,43 @@
 import { useEffect, useState } from "react";
 import API from "../api/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import DateFilter from "../components/DataFilter";
 
 function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [searchParams] = useSearchParams();
+
   const initialStatus = searchParams.get("status") || "all";
   const restaurantId = searchParams.get("restaurant");
 
   const [selectedStatus, setSelectedStatus] = useState(initialStatus);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // ✅ NEW: date filter state
+  const [dateFilter, setDateFilter] = useState({
+    range: "all",
+    startDate: "",
+    endDate: ""
+  });
+
   const navigate = useNavigate();
 
+  // ✅ UPDATED: API CALL WITH FILTERS
   useEffect(() => {
-    API.get("/orders")
+    const params = {};
+
+    if (dateFilter.startDate && dateFilter.endDate) {
+      params.start_date = dateFilter.startDate;
+      params.end_date = dateFilter.endDate;
+    } else if (dateFilter.range && dateFilter.range !== "all") {
+      params.range = dateFilter.range;
+    }
+
+    API.get("/orders", { params })
       .then(res => setOrders(res.data))
       .catch(err => console.error(err));
-  }, []);
+
+  }, [dateFilter]);
 
   const statuses = [
     "all",
@@ -61,6 +82,7 @@ function OrdersPage() {
     }
   };
 
+  // 🔍 FILTER (frontend)
   const filteredOrders = orders.filter((o) => {
     const search = searchTerm.toLowerCase();
 
@@ -83,15 +105,25 @@ function OrdersPage() {
     return orders.filter(o => o.status === status).length;
   };
 
-  const grandTotal = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+  const grandTotal = orders.reduce(
+    (sum, order) => sum + (order.total_amount || 0),
+    0
+  );
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>📦 Orders Dashboard</h1>
+
+      {/* ✅ DATE FILTER ADDED HERE */}
+      <DateFilter onChange={setDateFilter} />
+
       <h2>
         Showing: {selectedStatus.toUpperCase()} Orders
       </h2>
-      <h2 style={{ marginTop: "10px" }}>💰 Total Revenue: ₹{grandTotal}</h2>
+
+      <h2 style={{ marginTop: "10px" }}>
+        💰 Total Revenue: ₹{grandTotal}
+      </h2>
 
       <div style={{ margin: "15px 0" }}>
         <input
@@ -99,11 +131,22 @@ function OrdersPage() {
           placeholder="🔍 Search by Order ID / Table / Customer"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: "8px", width: "300px", borderRadius: "6px", border: "1px solid #ccc" }}
+          style={{
+            padding: "8px",
+            width: "300px",
+            borderRadius: "6px",
+            border: "1px solid #ccc"
+          }}
         />
       </div>
 
-      <div style={{ margin: "20px 0", display: "flex", flexWrap: "wrap", gap: "10px" }}>
+      {/* STATUS FILTER */}
+      <div style={{
+        margin: "20px 0",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "10px"
+      }}>
         {statuses.map((status) => (
           <button
             key={status}
@@ -125,7 +168,11 @@ function OrdersPage() {
       {filteredOrders.length === 0 ? (
         <p>No orders found</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: "20px"
+        }}>
           {filteredOrders.map((o) => (
             <div
               key={o.order_id}
@@ -141,26 +188,42 @@ function OrdersPage() {
             >
               <h3>🧾 Order #{o.order_id}</h3>
               <p><b>🍽 Table:</b> {o.table_number || "N/A"}</p>
+
               <p>
                 <b>📌 Status:</b>{" "}
-                <span style={{ color: getStatusColor(o.status), fontWeight: "bold" }}>
+                <span style={{
+                  color: getStatusColor(o.status),
+                  fontWeight: "bold"
+                }}>
                   {o.status}
                 </span>
               </p>
+
               <p>
                 <b>💳 Payment Status:</b>{" "}
-                <span style={{ color: getPaymentColor(o.payment_status), fontWeight: "bold" }}>
+                <span style={{
+                  color: getPaymentColor(o.payment_status),
+                  fontWeight: "bold"
+                }}>
                   {o.payment_status}
                 </span>
               </p>
+
               <p><b>💳 Payment Method:</b> {o.payment_method}</p>
               <p><b>💰 Total:</b> ₹{o.total_amount}</p>
 
-              {o.notes && <p style={{ fontSize: "13px", color: "#555" }}>📝 {o.notes}</p>}
+              {o.notes && (
+                <p style={{ fontSize: "13px", color: "#555" }}>
+                  📝 {o.notes}
+                </p>
+              )}
 
               {o.status === "pending" && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); cancelOrder(o.order_id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelOrder(o.order_id);
+                  }}
                   style={{
                     marginTop: "10px",
                     padding: "6px 10px",

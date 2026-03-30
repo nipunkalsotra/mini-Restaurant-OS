@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 import models, schemas
 from database import get_db
 from schemas import OrderStatus, PaymentStatus
+from datetime import datetime, timedelta
 
 router = APIRouter(prefix= "/orders", tags = ["Orders"])
 
@@ -71,9 +73,50 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Order creation failed")
 
 
-@router.get("", response_model= list[schemas.OrderResponse])
-def get_order(db : Session = Depends(get_db)):
-    orders = db.query(models.Order).order_by(models.Order.created_at.desc()).all()
+@router.get("", response_model=list[schemas.OrderResponse])
+def get_order(
+    range: str | None = Query(None),
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    status: OrderStatus | None = Query(None),
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Order)
+
+    if status:
+        query = query.filter(models.Order.status == status)
+
+    if start_date and end_date:
+        start = datetime.fromisoformat(start_date)
+        end = datetime.fromisoformat(end_date)
+        end = end.replace(hour=23, minute=59, second=59)
+
+        query = query.filter(
+            models.Order.created_at >= start,
+            models.Order.created_at <= end
+        )
+
+    elif range:
+        now = datetime.utcnow()
+
+        if range == "today":
+            today = now.date()
+            query = query.filter(func.date(models.Order.created_at) == today)
+
+        elif range == "7d":
+            query = query.filter(
+                models.Order.created_at >= now - timedelta(days=7)
+            )
+
+        elif range == "30d":
+            query = query.filter(
+                models.Order.created_at >= now - timedelta(days=30)
+            )
+
+        elif range == "all":
+            pass
+
+    orders = query.order_by(models.Order.created_at.desc()).all()
 
     for order in orders:
         order.customer_name = order.customer.customer_name if order.customer else None
