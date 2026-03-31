@@ -7,6 +7,9 @@ import {
     Line,
     BarChart,
     Bar,
+    PieChart,
+    Pie,
+    Cell,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -72,7 +75,13 @@ function SalesPage() {
     if (!restaurants.length) return <h2>Loading restaurants...</h2>;
     if (!sales) return <h2>Loading sales data...</h2>;
 
-    const chartData = sales.daily_trend || [];
+    const dailyTrend = sales.daily_trend || [];
+    const topItems = sales.top_selling_items || [];
+    const hourlyTraffic = sales.hourly_traffic || [];
+    const weekdayTrends = sales.weekday_trends || [];
+    const paymentBreakdown = sales.payment_breakdown || [];
+
+    const paymentColors = ["#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#e74c3c"];
 
     return (
         <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
@@ -93,9 +102,7 @@ function SalesPage() {
                     Select Restaurant:{" "}
                     <select
                         value={selectedRestaurant || ""}
-                        onChange={(e) =>
-                            setSelectedRestaurant(parseInt(e.target.value))
-                        }
+                        onChange={(e) => setSelectedRestaurant(parseInt(e.target.value))}
                         style={{
                             padding: "8px 12px",
                             borderRadius: "8px",
@@ -111,6 +118,7 @@ function SalesPage() {
                 </label>
             </div>
 
+            {/* SUMMARY */}
             <div
                 style={{
                     display: "grid",
@@ -130,11 +138,12 @@ function SalesPage() {
                 </div>
 
                 <div style={cardStyle}>
-                    <h3 style={cardTitle}>📊 Avg Order</h3>
+                    <h3 style={cardTitle}>📊 Avg Order Value</h3>
                     <h2 style={cardValue}>₹ {Math.round(sales.summary.avg_order_value)}</h2>
                 </div>
             </div>
 
+            {/* PHASE 1 CHARTS */}
             <div
                 style={{
                     display: "grid",
@@ -145,11 +154,11 @@ function SalesPage() {
             >
                 <div style={chartCardStyle}>
                     <h3 style={{ marginBottom: "15px" }}>📈 Revenue Trend</h3>
-                    {chartData.length === 0 ? (
+                    {dailyTrend.length === 0 ? (
                         <p>No revenue data available</p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={chartData}>
+                            <LineChart data={dailyTrend}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="date" />
                                 <YAxis />
@@ -169,11 +178,11 @@ function SalesPage() {
 
                 <div style={chartCardStyle}>
                     <h3 style={{ marginBottom: "15px" }}>📊 Orders Trend</h3>
-                    {chartData.length === 0 ? (
+                    {dailyTrend.length === 0 ? (
                         <p>No orders data available</p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={chartData}>
+                            <BarChart data={dailyTrend}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="date" />
                                 <YAxis />
@@ -191,31 +200,123 @@ function SalesPage() {
                 </div>
             </div>
 
-            <div style={chartCardStyle}>
-                <h3 style={{ marginBottom: "15px" }}>🗓 Daily Trend Table</h3>
+            {/* PHASE 2 CHARTS ROW 1 */}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    marginBottom: "30px"
+                }}
+            >
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>🍔 Top Selling Items</h3>
+                    {topItems.length === 0 ? (
+                        <p>No item data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                            <BarChart data={topItems} layout="vertical">
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" />
+                                <YAxis dataKey="item_name" type="category" width={120} />
+                                <Tooltip />
+                                <Legend />
+                                <Bar
+                                    dataKey="quantity_sold"
+                                    fill="#f39c12"
+                                    name="Quantity Sold"
+                                    radius={[0, 6, 6, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
 
-                {chartData.length === 0 ? (
-                    <p>No data available</p>
-                ) : (
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
-                                <th style={tableHead}>Date</th>
-                                <th style={tableHead}>Revenue</th>
-                                <th style={tableHead}>Orders</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {chartData.map((d, i) => (
-                                <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
-                                    <td style={tableCell}>{d.date}</td>
-                                    <td style={tableCell}>₹ {d.revenue}</td>
-                                    <td style={tableCell}>{d.orders}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>🕒 Hourly Traffic</h3>
+                    {hourlyTraffic.length === 0 ? (
+                        <p>No hourly data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                            <BarChart data={hourlyTraffic}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="hour" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar
+                                    dataKey="orders"
+                                    fill="#9b59b6"
+                                    name="Orders"
+                                    radius={[6, 6, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+            </div>
+
+            {/* PHASE 2 CHARTS ROW 2 */}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    marginBottom: "30px"
+                }}
+            >
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>📅 Weekday Trends</h3>
+                    {weekdayTrends.length === 0 ? (
+                        <p>No weekday data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                            <BarChart data={weekdayTrends}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="day" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar
+                                    dataKey="revenue"
+                                    fill="#2ecc71"
+                                    name="Revenue"
+                                    radius={[6, 6, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>💳 Payment Breakdown</h3>
+                    {paymentBreakdown.length === 0 ? (
+                        <p>No payment data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                            <PieChart>
+                                <Pie
+                                    data={paymentBreakdown}
+                                    dataKey="revenue"
+                                    nameKey="payment_method"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    label
+                                >
+                                    {paymentBreakdown.map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={paymentColors[index % paymentColors.length]}
+                                        />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -244,15 +345,6 @@ const cardTitle = {
 const cardValue = {
     fontSize: "36px",
     margin: 0
-};
-
-const tableHead = {
-    padding: "12px 10px",
-    fontWeight: "600"
-};
-
-const tableCell = {
-    padding: "12px 10px"
 };
 
 export default SalesPage;

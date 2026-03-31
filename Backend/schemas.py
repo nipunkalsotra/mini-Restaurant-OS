@@ -177,20 +177,29 @@ class DailyTrend(BaseModel):
     revenue: float
     orders: int
 
+class TopSellingItem(BaseModel):
+    item_name : str
+    quantity_sold: int
+    revenue : float
+
+class HourlyTrafficPoint(BaseModel):
+    hour : int
+    orders : int
+
+class WeekdayEndPoint(BaseModel):
+    day : str
+    revenue : float
+    orders : int
+
+class PaymentMethodBreakdown(BaseModel):
+    payment_method : str
+    orders : int
+    revenue : float
 
 class SalesAnalyticsResponse(BaseModel):
     summary: SalesSummary
     daily_trend: list[DailyTrend]
-
-
-
-
-
-
-
-    
-
-
-
-
-
+    top_selling_items : list[TopSellingItem]
+    hourly_traffic : list[HourlyTrafficPoint]
+    weekday_trends : list[WeekdayEndPoint]
+    payment_breakdown : list[PaymentMethodBreakdown]
