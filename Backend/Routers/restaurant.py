@@ -5,6 +5,7 @@ import models, schemas
 from database import get_db
 from schemas import OrderStatus
 from datetime import datetime, timedelta
+from services.analytics_service import get_sales_analytics
 
 router = APIRouter(prefix= "/restaurants", tags = ["Restaurants"])
 
@@ -68,7 +69,7 @@ def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Ses
 
     return menu_category
 
-@router.get("/{restaurant_id}/sales", response_model=schemas.SalesResponse)
+@router.get("/{restaurant_id}/sales", response_model=schemas.SalesAnalyticsResponse)
 def get_sales(
     restaurant_id: int,
     range: str | None = Query(None),
@@ -76,66 +77,7 @@ def get_sales(
     end_date: str | None = Query(None),
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.Order).filter(
-        models.Order.restaurant_id == restaurant_id
-    )
-
-    if start_date and end_date:
-        try:
-            start = datetime.fromisoformat(start_date)
-            end = datetime.fromisoformat(end_date)
-            end = end.replace(hour=23, minute=59, second=59)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format")
-
-        query = query.filter(
-            models.Order.created_at >= start,
-            models.Order.created_at <= end
-        )
-
-    elif range:
-        now = datetime.now()
-
-        if range == "today":
-            today = now.date()
-            query = query.filter(func.date(models.Order.created_at) == today)
-
-        elif range == "7d":
-            query = query.filter(
-                models.Order.created_at >= now - timedelta(days=7)
-            )
-
-        elif range == "30d":
-            query = query.filter(
-                models.Order.created_at >= now - timedelta(days=30)
-            )
-
-        elif range == "all":
-            pass
-
-    total_orders = query.filter(
-        models.Order.status == OrderStatus.completed
-    ).count()
-
-    total_revenue = query.with_entities(
-        func.sum(models.Order.total_amount)
-    ).filter(
-        models.Order.status == OrderStatus.completed
-    ).scalar()
-
-    status_counts = query.with_entities(
-        models.Order.status,
-        func.count(models.Order.order_id)
-    ).group_by(models.Order.status).all()
-
-    status_dict = {status.value: count for status, count in status_counts}
-
-    return schemas.SalesResponse(
-        restaurant_id=restaurant_id,
-        total_orders=total_orders,
-        total_revenue=total_revenue or 0,
-        status_counts=status_dict
-    )
+    return get_sales_analytics(db, restaurant_id, range, start_date, end_date)
 
 @router.get("/{restaurant_id}/categories")
 def get_categories(restaurant_id: int, db: Session = Depends(get_db)):

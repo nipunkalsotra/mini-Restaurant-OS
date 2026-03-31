@@ -1,16 +1,23 @@
 import { useEffect, useState, useCallback } from "react";
 import API from "../api/api";
-import { useNavigate } from "react-router-dom";
 import DateFilter from "../components/DataFilter";
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend
+} from "recharts";
 
 function SalesPage() {
-    const navigate = useNavigate();
-
     const [restaurants, setRestaurants] = useState([]);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-
     const [sales, setSales] = useState(null);
-    const [orders, setOrders] = useState([]);
 
     const [dateFilter, setDateFilter] = useState({
         range: "all",
@@ -18,7 +25,6 @@ function SalesPage() {
         endDate: ""
     });
 
-    // ✅ Fetch restaurants
     useEffect(() => {
         const fetchRestaurants = async () => {
             try {
@@ -35,7 +41,6 @@ function SalesPage() {
         fetchRestaurants();
     }, []);
 
-    // ✅ Fetch Sales
     const fetchSales = useCallback(async (restaurantId) => {
         try {
             const params = {};
@@ -47,10 +52,9 @@ function SalesPage() {
                 params.range = dateFilter.range;
             }
 
-            const res = await API.get(
-                `/restaurants/${restaurantId}/sales`,
-                { params }
-            );
+            const res = await API.get(`/restaurants/${restaurantId}/sales`, {
+                params
+            });
 
             setSales(res.data);
         } catch (err) {
@@ -59,47 +63,21 @@ function SalesPage() {
         }
     }, [dateFilter]);
 
-    // ✅ Fetch Orders
-    const fetchOrders = useCallback(async (restaurantId) => {
-        try {
-            const params = {};
-
-            if (dateFilter.startDate && dateFilter.endDate) {
-                params.start_date = dateFilter.startDate;
-                params.end_date = dateFilter.endDate;
-            } else if (dateFilter.range !== "all") {
-                params.range = dateFilter.range;
-            }
-
-            const res = await API.get("/orders", { params });
-
-            const restaurantOrders = res.data.filter(
-                order => order.restaurant_id === restaurantId
-            );
-
-            setOrders(restaurantOrders);
-        } catch (err) {
-            console.error("Error fetching orders:", err);
-            setOrders([]);
-        }
-    }, [dateFilter]);
-
-    // ✅ Trigger fetch when restaurant OR date changes
     useEffect(() => {
         if (selectedRestaurant) {
             fetchSales(selectedRestaurant);
-            fetchOrders(selectedRestaurant);
         }
-    }, [selectedRestaurant, fetchSales, fetchOrders]);
+    }, [selectedRestaurant, fetchSales]);
 
     if (!restaurants.length) return <h2>Loading restaurants...</h2>;
     if (!sales) return <h2>Loading sales data...</h2>;
 
-    return (
-        <div style={{ padding: "20px" }}>
-            <h1>📊 Sales Dashboard</h1>
+    const chartData = sales.daily_trend || [];
 
-            {/* ✅ DATE FILTER */}
+    return (
+        <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
+            <h1 style={{ marginBottom: "20px" }}>📊 Sales Dashboard</h1>
+
             <DateFilter onChange={setDateFilter} />
 
             <h3 style={{ marginBottom: "15px", color: "#666" }}>
@@ -110,17 +88,21 @@ function SalesPage() {
                 }
             </h3>
 
-            {/* Restaurant Selector */}
             <div style={{ marginBottom: "20px" }}>
-                <label>
+                <label style={{ fontWeight: "600" }}>
                     Select Restaurant:{" "}
                     <select
                         value={selectedRestaurant || ""}
                         onChange={(e) =>
                             setSelectedRestaurant(parseInt(e.target.value))
                         }
+                        style={{
+                            padding: "8px 12px",
+                            borderRadius: "8px",
+                            border: "1px solid #ccc"
+                        }}
                     >
-                        {restaurants.map(r => (
+                        {restaurants.map((r) => (
                             <option key={r.restaurant_id} value={r.restaurant_id}>
                                 {r.restaurant_name}
                             </option>
@@ -129,83 +111,148 @@ function SalesPage() {
                 </label>
             </div>
 
-            {/* SUMMARY */}
-            <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: "20px",
+                    marginBottom: "30px"
+                }}
+            >
                 <div style={cardStyle}>
-                    <h3>💰 Revenue</h3>
-                    <h2>₹ {sales.total_revenue}</h2>
+                    <h3 style={cardTitle}>💰 Revenue</h3>
+                    <h2 style={cardValue}>₹ {sales.summary.total_revenue}</h2>
                 </div>
 
                 <div style={cardStyle}>
-                    <h3>📦 Total Orders</h3>
-                    <h2>{sales.total_orders}</h2>
+                    <h3 style={cardTitle}>📦 Orders</h3>
+                    <h2 style={cardValue}>{sales.summary.total_orders}</h2>
+                </div>
+
+                <div style={cardStyle}>
+                    <h3 style={cardTitle}>📊 Avg Order</h3>
+                    <h2 style={cardValue}>₹ {Math.round(sales.summary.avg_order_value)}</h2>
                 </div>
             </div>
 
-            {/* STATUS */}
-            <div style={{ marginBottom: "20px" }}>
-                <h2>Order Status</h2>
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {Object.entries(sales.status_counts).map(([status, count]) => (
-                        <div
-                            key={status}
-                            style={{ ...statusCard, cursor: "pointer" }}
-                            onClick={() =>
-                                navigate(`/orders?status=${status}&restaurant=${selectedRestaurant}`)
-                            }
-                        >
-                            <strong>{status.toUpperCase()}</strong>
-                            <p>{count}</p>
-                        </div>
-                    ))}
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    marginBottom: "30px"
+                }}
+            >
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>📈 Revenue Trend</h3>
+                    {chartData.length === 0 ? (
+                        <p>No revenue data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Line
+                                    type="monotone"
+                                    dataKey="revenue"
+                                    stroke="#2ecc71"
+                                    strokeWidth={3}
+                                    name="Revenue"
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>📊 Orders Trend</h3>
+                    {chartData.length === 0 ? (
+                        <p>No orders data available</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar
+                                    dataKey="orders"
+                                    fill="#3498db"
+                                    name="Orders"
+                                    radius={[6, 6, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
 
-            {/* ORDERS */}
-            <h2>Orders</h2>
-            {orders.length === 0 ? (
-                <p>No orders found for this filter</p>
-            ) : (
-                orders.map(order => (
-                    <div
-                        key={order.order_id}
-                        style={orderCard}
-                        onClick={() => navigate(`/orders/${order.order_id}`)}
-                    >
-                        <h3>Order #{order.order_id}</h3>
-                        <p>Status: {order.status}</p>
-                        <p>Total: ₹ {order.total_amount}</p>
-                        <p>Table: {order.table_number}</p>
-                        <p>Customer: {order.customer_name || "Guest"}</p>
-                    </div>
-                ))
-            )}
+            <div style={chartCardStyle}>
+                <h3 style={{ marginBottom: "15px" }}>🗓 Daily Trend Table</h3>
+
+                {chartData.length === 0 ? (
+                    <p>No data available</p>
+                ) : (
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                            <tr style={{ textAlign: "left", borderBottom: "1px solid #ddd" }}>
+                                <th style={tableHead}>Date</th>
+                                <th style={tableHead}>Revenue</th>
+                                <th style={tableHead}>Orders</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {chartData.map((d, i) => (
+                                <tr key={i} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                                    <td style={tableCell}>{d.date}</td>
+                                    <td style={tableCell}>₹ {d.revenue}</td>
+                                    <td style={tableCell}>{d.orders}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
+            </div>
         </div>
     );
 }
 
 const cardStyle = {
+    background: "#fff",
+    borderRadius: "16px",
     padding: "20px",
-    borderRadius: "10px",
-    background: "#f5f5f5",
-    minWidth: "150px"
+    boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
 };
 
-const statusCard = {
-    padding: "10px",
-    borderRadius: "8px",
-    background: "#e0f7fa",
-    minWidth: "100px",
-    textAlign: "center"
+const chartCardStyle = {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "20px",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
 };
 
-const orderCard = {
-    border: "1px solid #ddd",
-    padding: "10px",
-    marginBottom: "10px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    background: "#fff"
+const cardTitle = {
+    fontSize: "18px",
+    marginBottom: "12px",
+    color: "#444"
+};
+
+const cardValue = {
+    fontSize: "36px",
+    margin: 0
+};
+
+const tableHead = {
+    padding: "12px 10px",
+    fontWeight: "600"
+};
+
+const tableCell = {
+    padding: "12px 10px"
 };
 
 export default SalesPage;

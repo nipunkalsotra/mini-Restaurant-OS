@@ -166,6 +166,22 @@ class SalesResponse(BaseModel):
     total_revenue : float
     status_counts : dict[str, int]
 
+class SalesSummary(BaseModel):
+    total_orders: int
+    total_revenue: float
+    avg_order_value: float
+
+
+class DailyTrend(BaseModel):
+    date: str
+    revenue: float
+    orders: int
+
+
+class SalesAnalyticsResponse(BaseModel):
+    summary: SalesSummary
+    daily_trend: list[DailyTrend]
+
 
 
 
