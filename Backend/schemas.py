@@ -186,7 +186,7 @@ class HourlyTrafficPoint(BaseModel):
     hour : int
     orders : int
 
-class WeekdayEndPoint(BaseModel):
+class WeekdayTrendPoint(BaseModel):
     day : str
     revenue : float
     orders : int
@@ -196,10 +196,32 @@ class PaymentMethodBreakdown(BaseModel):
     orders : int
     revenue : float
 
+class GrowthMetrics(BaseModel):
+    revenue_change_percentage : float
+    orders_change_percentage : float
+
+class CustomerInsights(BaseModel):
+    new_customers : int
+    returning_customers : int
+
+class CategoryPerformance(BaseModel):
+    category_name : str
+    revenue : float
+    orders : int
+
+class LowPerformingItem(BaseModel):
+    item_name : str
+    quantity_sold : int
+
 class SalesAnalyticsResponse(BaseModel):
     summary: SalesSummary
     daily_trend: list[DailyTrend]
     top_selling_items : list[TopSellingItem]
     hourly_traffic : list[HourlyTrafficPoint]
-    weekday_trends : list[WeekdayEndPoint]
+    weekday_trends : list[WeekdayTrendPoint]
     payment_breakdown : list[PaymentMethodBreakdown]
+    show_period_insights : bool
+    growth_metrics : GrowthMetrics
+    customer_insights : CustomerInsights
+    category_performance : list[CategoryPerformance]
+    low_performing_items : list[LowPerformingItem]

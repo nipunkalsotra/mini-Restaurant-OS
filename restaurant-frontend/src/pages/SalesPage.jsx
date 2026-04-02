@@ -21,6 +21,8 @@ function SalesPage() {
     const [restaurants, setRestaurants] = useState([]);
     const [selectedRestaurant, setSelectedRestaurant] = useState(null);
     const [sales, setSales] = useState(null);
+    const [salesError, setSalesError] = useState("");
+    const [isSalesLoading, setIsSalesLoading] = useState(false);
 
     const [dateFilter, setDateFilter] = useState({
         range: "all",
@@ -46,6 +48,11 @@ function SalesPage() {
 
     const fetchSales = useCallback(async (restaurantId) => {
         try {
+            if (!restaurantId) return;
+
+            setIsSalesLoading(true);
+            setSalesError("");
+
             const params = {};
 
             if (dateFilter.startDate && dateFilter.endDate) {
@@ -62,7 +69,13 @@ function SalesPage() {
             setSales(res.data);
         } catch (err) {
             console.error("Error fetching sales:", err);
-            setSales(null);
+            setSalesError(
+                err.response?.data?.detail ||
+                err.message ||
+                "Failed to load sales data"
+            );
+        } finally {
+            setIsSalesLoading(false);
         }
     }, [dateFilter]);
 
@@ -73,6 +86,7 @@ function SalesPage() {
     }, [selectedRestaurant, fetchSales]);
 
     if (!restaurants.length) return <h2>Loading restaurants...</h2>;
+    if (salesError && !sales) return <h2 style={{ color: "red" }}>Error: {salesError}</h2>;
     if (!sales) return <h2>Loading sales data...</h2>;
 
     const dailyTrend = sales.daily_trend || [];
@@ -80,12 +94,25 @@ function SalesPage() {
     const hourlyTraffic = sales.hourly_traffic || [];
     const weekdayTrends = sales.weekday_trends || [];
     const paymentBreakdown = sales.payment_breakdown || [];
+    const categoryPerformance = sales.category_performance || [];
+    const lowPerformingItems = sales.low_performing_items || [];
 
     const paymentColors = ["#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#e74c3c"];
 
     return (
         <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
-            <h1 style={{ marginBottom: "20px" }}>📊 Sales Dashboard</h1>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h1 style={{ margin: 0 }}>📊 Sales Dashboard</h1>
+                {isSalesLoading && (
+                    <span style={{ color: "#666", fontSize: "14px" }}>Updating sales data...</span>
+                )}
+            </div>
+
+            {salesError && sales && (
+                <p style={{ color: "red", marginBottom: "12px" }}>
+                    Error updating data: {salesError}
+                </p>
+            )}
 
             <DateFilter onChange={setDateFilter} />
 
@@ -118,7 +145,6 @@ function SalesPage() {
                 </label>
             </div>
 
-            {/* SUMMARY */}
             <div
                 style={{
                     display: "grid",
@@ -143,7 +169,69 @@ function SalesPage() {
                 </div>
             </div>
 
-            {/* PHASE 1 CHARTS */}
+            {sales.show_period_insights && (
+                <div
+                    style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "20px",
+                        marginBottom: "30px"
+                    }}
+                >
+                    <div style={chartCardStyle}>
+                        <h3 style={{ marginBottom: "15px" }}>📈 Growth Metrics</h3>
+                        <div style={{ display: "flex", gap: "30px" }}>
+                            <div>
+                                <strong>Revenue Growth</strong>
+                                <p
+                                    style={{
+                                        fontSize: "22px",
+                                        fontWeight: "bold",
+                                        color: sales.growth_metrics?.revenue_change_percentage >= 0 ? "green" : "red"
+                                    }}
+                                >
+                                    {sales.growth_metrics?.revenue_change_percentage >= 0 ? "▲" : "▼"}{" "}
+                                    {Math.abs(sales.growth_metrics?.revenue_change_percentage || 0).toFixed(2)}%
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>Orders Growth</strong>
+                                <p
+                                    style={{
+                                        fontSize: "22px",
+                                        fontWeight: "bold",
+                                        color: sales.growth_metrics?.orders_change_percentage >= 0 ? "green" : "red"
+                                    }}
+                                >
+                                    {sales.growth_metrics?.orders_change_percentage >= 0 ? "▲" : "▼"}{" "}
+                                    {Math.abs(sales.growth_metrics?.orders_change_percentage || 0).toFixed(2)}%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={chartCardStyle}>
+                        <h3 style={{ marginBottom: "15px" }}>👥 Customer Insights</h3>
+                        <div style={{ display: "flex", gap: "30px" }}>
+                            <div>
+                                <strong>New Customers</strong>
+                                <p style={{ fontSize: "26px", fontWeight: "bold" }}>
+                                    {sales.customer_insights?.new_customers || 0}
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>Returning Customers</strong>
+                                <p style={{ fontSize: "26px", fontWeight: "bold" }}>
+                                    {sales.customer_insights?.returning_customers || 0}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div
                 style={{
                     display: "grid",
@@ -200,7 +288,6 @@ function SalesPage() {
                 </div>
             </div>
 
-            {/* PHASE 2 CHARTS ROW 1 */}
             <div
                 style={{
                     display: "grid",
@@ -256,7 +343,6 @@ function SalesPage() {
                 </div>
             </div>
 
-            {/* PHASE 2 CHARTS ROW 2 */}
             <div
                 style={{
                     display: "grid",
@@ -315,6 +401,60 @@ function SalesPage() {
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                    )}
+                </div>
+            </div>
+
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "20px",
+                    marginBottom: "30px"
+                }}
+            >
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>🍽️ Category Performance</h3>
+                    {categoryPerformance.length === 0 ? (
+                        <p>No category data</p>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={320}>
+                            <BarChart data={categoryPerformance}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="category_name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Legend />
+                                <Bar
+                                    dataKey="revenue"
+                                    fill="#1abc9c"
+                                    name="Revenue"
+                                    radius={[6, 6, 0, 0]}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+
+                <div style={chartCardStyle}>
+                    <h3 style={{ marginBottom: "15px" }}>⚠️ Low Performing Items</h3>
+                    {lowPerformingItems.length === 0 ? (
+                        <p>No data</p>
+                    ) : (
+                        lowPerformingItems.map((item, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    padding: "10px 0",
+                                    borderBottom: "1px solid #eee"
+                                }}
+                            >
+                                <span>{item.item_name}</span>
+                                <strong>{item.quantity_sold}</strong>
+                            </div>
+                        ))
                     )}
                 </div>
             </div>
