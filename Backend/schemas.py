@@ -139,14 +139,16 @@ class OrderResponse(BaseModel):
 
 
 class OrderUpdate(BaseModel):
-    status: Optional[str] = None
+    status: Optional[OrderStatus] = None
     payment_status: Optional[PaymentStatus] = None
-    payment_method: Optional[str] = None
+    payment_method: Optional[PaymentMethod] = None
+
+    customer_id: Optional[int] = None
+    table_number: Optional[int] = None
     notes: Optional[str] = None
 
     class Config:
         from_attributes = True
-
 
 class OrderItemCreate(BaseModel):
     order_id: int
