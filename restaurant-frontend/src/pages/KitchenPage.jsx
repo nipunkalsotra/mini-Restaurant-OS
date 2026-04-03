@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import API from "../api/api";
 
 function KitchenPage() {
@@ -8,17 +8,16 @@ function KitchenPage() {
 
   const statuses = ["pending", "preparing", "ready"];
 
-  const fetchOrders = () => {
-    setLoading(true);
-    API.get("/orders/kitchen")
-      .then((res) => {
-        setOrders(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await API.get("/orders/kitchen");
+      setOrders(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -30,7 +29,15 @@ function KitchenPage() {
   const updateStatus = async (orderId, newStatus) => {
     try {
       await API.put(`/orders/${orderId}`, { status: newStatus });
-      fetchOrders();
+
+      // 🔥 Optimistic UI (no flicker)
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.order.order_id === orderId
+            ? { ...o, order: { ...o.order, status: newStatus } }
+            : o
+        )
+      );
     } catch (err) {
       console.error(err);
       alert("❌ Failed to update order status");
@@ -39,131 +46,168 @@ function KitchenPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "pending": return "#f39c12";
-      case "preparing": return "#3498db";
-      case "ready": return "#2ecc71";
-      case "served": return "#9b59b6";
-      default: return "#999";
+      case "pending":
+        return "#f39c12";
+      case "preparing":
+        return "#3498db";
+      case "ready":
+        return "#2ecc71";
+      default:
+        return "#999";
     }
   };
 
-  const filteredOrders = (status) =>
-    orders
-      .filter((o) => {
-        const search = searchTerm.toLowerCase();
-        return (
-          o.order.order_id.toString().includes(search) ||
-          (o.order.table_number || "").toString().includes(search)
-        );
-      })
-      .filter((o) => o.order.status === status);
+  const filteredOrders = useMemo(() => {
+    const search = searchTerm.toLowerCase();
 
-  const columnStyle = {
-    flex: 1,
-    display: "flex",
-    flexDirection: "column",
-  };
+    return orders.filter((o) => {
+      return (
+        o.order.order_id.toString().includes(search) ||
+        (o.order.table_number || "").toString().includes(search)
+      );
+    });
+  }, [orders, searchTerm]);
 
-  const cardStyle = {
-    padding: "15px",
-    borderRadius: "8px",
-    background: "#fff",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-    marginBottom: "15px",
-    borderLeft: "6px solid",
-  };
+  const getOrdersByStatus = (status) =>
+    filteredOrders.filter((o) => o.order.status === status);
 
-  if (loading) return <p>Loading kitchen orders...</p>;
+  if (loading) {
+    return (
+      <div style={pageStyle}>
+        <div style={emptyCardStyle}>Loading kitchen orders...</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>🍳 Kitchen Dashboard</h1>
+    <div style={pageStyle}>
+      {/* HEADER */}
+      <div style={headerCardStyle}>
+        <div style={headerRowStyle}>
+          <div>
+            <h1 style={titleStyle}>🍳 Kitchen Dashboard</h1>
+            <p style={subtitleStyle}>
+              Real-time order flow for kitchen operations.
+            </p>
+          </div>
 
-      {/* Search */}
-      <div style={{ margin: "15px 0" }}>
+          <div style={highlightCardStyle}>
+            <div style={{ fontSize: "13px", color: "#666" }}>
+              Active Orders
+            </div>
+            <div style={{ fontSize: "22px", fontWeight: "bold" }}>
+              {orders.length}
+            </div>
+          </div>
+        </div>
+
+        {/* SEARCH */}
         <input
           type="text"
           placeholder="🔍 Search by Order ID / Table"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ padding: "8px", width: "300px", borderRadius: "6px", border: "1px solid #ccc" }}
+          style={searchStyle}
         />
       </div>
 
-      {/* Columns */}
-      <div style={{ display: "flex", gap: "20px", alignItems: "flex-start" }}>
+      {/* COLUMNS */}
+      <div style={columnsWrapper}>
         {statuses.map((status) => {
-          const ordersInStatus = filteredOrders(status);
+          const ordersInStatus = getOrdersByStatus(status);
+
           return (
             <div key={status} style={columnStyle}>
-              <h2 style={{ textTransform: "capitalize" }}>
-                {status} ({ordersInStatus.length})
-              </h2>
+              <div style={columnHeaderStyle}>
+                <h2 style={{ margin: 0, textTransform: "capitalize" }}>
+                  {status}
+                </h2>
+                <span style={countBadge}>{ordersInStatus.length}</span>
+              </div>
 
-              {ordersInStatus.length === 0 && <p>No {status} orders</p>}
-
-              {ordersInStatus.map((o) => (
-                <div key={o.order.order_id} style={{ ...cardStyle, borderLeftColor: getStatusColor(o.order.status) }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
-                    <div>
-                      <h3 style={{ margin: 0 }}>🧾 Order #{o.order.order_id}</h3>
-                      <p style={{ margin: "2px 0" }}><b>🍽 Table:</b> {o.order.table_number || "N/A"}</p>
-                    </div>
-                    <span style={{
-                      color: "#fff",
-                      background: getStatusColor(o.order.status),
-                      padding: "4px 10px",
-                      borderRadius: "6px",
-                      height: "fit-content"
-                    }}>
-                      {o.order.status.toUpperCase()}
-                    </span>
-                  </div>
-
-                  {/* Order Items */}
-                  <div style={{
-                    borderTop: "1px dashed #ccc",
-                    paddingTop: "8px",
-                    marginTop: "8px",
-                    marginBottom: "8px"
-                  }}>
-                    {o.items?.map((item) => (
-                      <div key={item.order_item_id} style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", margin: "2px 0" }}>
-                        <span>🍽 {item.item_name}</span>
-                        <span>x {item.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    {o.order.status === "pending" && (
-                      <button
-                        onClick={() => updateStatus(o.order.order_id, "preparing")}
-                        style={{ flex: 1, padding: "6px", background: "#3498db", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-                      >
-                        Start Cooking
-                      </button>
-                    )}
-                    {o.order.status === "preparing" && (
-                      <button
-                        onClick={() => updateStatus(o.order.order_id, "ready")}
-                        style={{ flex: 1, padding: "6px", background: "#2ecc71", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-                      >
-                        Mark Ready
-                      </button>
-                    )}
-                    {o.order.status === "ready" && (
-                      <button
-                        onClick={() => updateStatus(o.order.order_id, "served")}
-                        style={{ flex: 1, padding: "6px", background: "#9b59b6", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}
-                      >
-                        Serve Order
-                      </button>
-                    )}
-                  </div>
+              {ordersInStatus.length === 0 ? (
+                <div style={emptyInnerStyle}>
+                  No {status} orders
                 </div>
-              ))}
+              ) : (
+                ordersInStatus.map((o) => (
+                  <div
+                    key={o.order.order_id}
+                    style={{
+                      ...cardStyle,
+                      borderTop: `4px solid ${getStatusColor(o.order.status)}`
+                    }}
+                  >
+                    {/* HEADER */}
+                    <div style={cardHeader}>
+                      <div>
+                        <h3 style={{ margin: 0 }}>
+                          🧾 Order #{o.order.order_id}
+                        </h3>
+                        <p style={{ margin: "4px 0", color: "#666" }}>
+                          🍽 Table: {o.order.table_number || "N/A"}
+                        </p>
+                      </div>
+
+                      <span
+                        style={{
+                          ...statusBadge,
+                          background: `${getStatusColor(o.order.status)}20`,
+                          color: getStatusColor(o.order.status)
+                        }}
+                      >
+                        {o.order.status}
+                      </span>
+                    </div>
+
+                    {/* ITEMS */}
+                    <div style={itemsBox}>
+                      {o.items?.map((item) => (
+                        <div key={item.order_item_id} style={itemRow}>
+                          <span>🍽 {item.item_name}</span>
+                          <span>x {item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ACTION */}
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      {o.order.status === "pending" && (
+                        <button
+                          onClick={() =>
+                            updateStatus(o.order.order_id, "preparing")
+                          }
+                          style={{ ...btnStyle, background: "#3498db" }}
+                        >
+                          Start Cooking
+                        </button>
+                      )}
+
+                      {o.order.status === "preparing" && (
+                        <button
+                          onClick={() =>
+                            updateStatus(o.order.order_id, "ready")
+                          }
+                          style={{ ...btnStyle, background: "#2ecc71" }}
+                        >
+                          Mark Ready
+                        </button>
+                      )}
+
+                      {o.order.status === "ready" && (
+                        <button
+                          onClick={() =>
+                            updateStatus(o.order.order_id, "served")
+                          }
+                          style={{ ...btnStyle, background: "#9b59b6" }}
+                        >
+                          Serve
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           );
         })}
@@ -171,5 +215,128 @@ function KitchenPage() {
     </div>
   );
 }
+
+/* STYLES */
+
+const pageStyle = {
+  minHeight: "100vh",
+  background: "#f7f8fa",
+  padding: "24px"
+};
+
+const headerCardStyle = {
+  background: "#fff",
+  borderRadius: "18px",
+  padding: "20px",
+  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  marginBottom: "20px"
+};
+
+const headerRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  flexWrap: "wrap"
+};
+
+const titleStyle = { margin: 0, fontSize: "30px" };
+const subtitleStyle = { margin: "6px 0", color: "#666" };
+
+const highlightCardStyle = {
+  background: "#f8faff",
+  padding: "10px 16px",
+  borderRadius: "12px",
+  border: "1px solid #e8eefc"
+};
+
+const searchStyle = {
+  marginTop: "15px",
+  padding: "10px",
+  borderRadius: "10px",
+  border: "1px solid #ddd",
+  width: "300px"
+};
+
+const columnsWrapper = {
+  display: "flex",
+  gap: "20px",
+  alignItems: "flex-start"
+};
+
+const columnStyle = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px"
+};
+
+const columnHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center"
+};
+
+const countBadge = {
+  background: "#eef3ff",
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontWeight: "bold"
+};
+
+const cardStyle = {
+  background: "#fff",
+  borderRadius: "16px",
+  padding: "15px",
+  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+};
+
+const cardHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: "10px"
+};
+
+const statusBadge = {
+  padding: "5px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "bold",
+  textTransform: "capitalize"
+};
+
+const itemsBox = {
+  borderTop: "1px dashed #ddd",
+  marginTop: "10px",
+  paddingTop: "10px",
+  marginBottom: "10px"
+};
+
+const itemRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  fontSize: "14px"
+};
+
+const btnStyle = {
+  flex: 1,
+  padding: "8px",
+  border: "none",
+  borderRadius: "8px",
+  color: "#fff",
+  cursor: "pointer",
+  fontWeight: "bold"
+};
+
+const emptyCardStyle = {
+  background: "#fff",
+  padding: "20px",
+  borderRadius: "16px"
+};
+
+const emptyInnerStyle = {
+  background: "#fafbfc",
+  padding: "12px",
+  borderRadius: "10px",
+  color: "#777"
+};
 
 export default KitchenPage;
