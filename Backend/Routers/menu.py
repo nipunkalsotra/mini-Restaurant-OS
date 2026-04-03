@@ -20,16 +20,18 @@ def get_menuitem(db : Session = Depends(get_db)):
     menu_items = db.query(models.MenuItem).all()
     return menu_items
 
-@router.put("/{menu_item_id}", response_model= schemas.MenuItemResponse)
-def update_menu_item(menu_item_id : int, menu_item : schemas.MenuItemCreate, db : Session = Depends(get_db)):
+@router.put("/{menu_item_id}", response_model=schemas.MenuItemResponse)
+def update_menu_item(menu_item_id: int, menu_item: schemas.MenuItemUpdate, db: Session = Depends(get_db)):
     db_item = db.query(models.MenuItem).filter(
         models.MenuItem.menu_item_id == menu_item_id
     ).first()
 
     if not db_item:
         raise HTTPException(status_code=404, detail="Menu Item not found")
-    
-    for key, value  in menu_item.dict().items():
+
+    updated_data = menu_item.dict(exclude_unset=True)
+
+    for key, value in updated_data.items():
         setattr(db_item, key, value)
 
     db.commit()

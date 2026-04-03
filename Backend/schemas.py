@@ -282,3 +282,20 @@ class SalesAnalyticsResponse(BaseModel):
     anomaly_flags: list[AnomalyFlag]
     top_insight: TopInsight
     insight_text: list[str]
+
+class RestaurantUpdate(BaseModel):
+    restaurant_name: Optional[str] = None
+    restaurant_phone: Optional[str] = None
+    restaurant_email: Optional[str] = None
+
+
+class MenuItemUpdate(BaseModel):
+    category_id: Optional[int] = None
+    item_name: Optional[str] = None
+    item_price: Optional[float] = None
+    is_active: Optional[bool] = None
+
+
+class CategoryUpdate(BaseModel):
+    category_name: Optional[str] = None
+    display_order: Optional[int] = None

@@ -32,6 +32,10 @@ function Sidebar() {
       <h2 style={{ marginBottom: "40px", color: "#00bcd4" }}>Restaurant OS</h2>
 
       <nav style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        <NavLink to = "/restaurant-settings" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
+          <FaUtensils /> Restaurant
+        </NavLink>
+
         <NavLink to="/" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
           <FaUtensils /> Menu
         </NavLink>

@@ -20,6 +20,25 @@ def create_restaurant(restaurant : schemas.RestaurantCreate, db : Session = Depe
 
     return new_restaurant
 
+@router.put("/{restaurant_id}", response_model= schemas.RestaurantResponse)
+def update_restaurant(restaurant_id : int, restaurant : schemas.RestaurantUpdate, db : Session = Depends(get_db)):
+    db_restaurant = db.query(models.Restaurant).filter(
+        models.Restaurant.restaurant_id == restaurant_id
+    ).first()
+
+    if not db_restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    updated_data = restaurant.dict(exclude_unset=True)
+
+    for key, value in updated_data.items():
+        setattr(db_restaurant, key, value)
+
+    db.commit()
+    db.refresh(db_restaurant)
+
+    return db_restaurant
+
 @router.get("", response_model=list[schemas.RestaurantResponse])
 def get_all_restaurants(db: Session = Depends(get_db)):
     restaurants = db.query(models.Restaurant).all()

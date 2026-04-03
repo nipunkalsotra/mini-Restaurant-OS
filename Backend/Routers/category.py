@@ -20,16 +20,18 @@ def get_category(db : Session = Depends(get_db)):
     categories = db.query(models.Category).all()
     return categories
 
-@router.put("/{category_id}", response_model= schemas.CategoryResponse)
-def update_category(category_id : int, category : schemas.CategoryCreate, db : Session = Depends(get_db)):
+@router.put("/{category_id}", response_model=schemas.CategoryResponse)
+def update_category(category_id: int, category: schemas.CategoryUpdate, db: Session = Depends(get_db)):
     db_category = db.query(models.Category).filter(
         models.Category.category_id == category_id
     ).first()
 
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
-    
-    for key, value in category.dict().items():
+
+    updated_data = category.dict(exclude_unset=True)
+
+    for key, value in updated_data.items():
         setattr(db_category, key, value)
 
     db.commit()

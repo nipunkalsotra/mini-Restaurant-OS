@@ -11,6 +11,7 @@ import KitchenPage from "./pages/KitchenPage";
 import OrderDetailPage from "./pages/OrderDetailPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import BillingPage from "./pages/BillingPage";
+import RestaurantPage from "./pages/RestaurantPage";
 
 function App() {
 
@@ -38,7 +39,7 @@ function App() {
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
             <Route path="/billing" element={<BillingPage cart={cart} setCart={setCart} />}/>
-
+            <Route path="/restaurant-settings" element={<RestaurantPage />} />
           </Routes>
         </div>
 
