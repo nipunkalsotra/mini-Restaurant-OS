@@ -251,9 +251,23 @@ class LowPerformingItem(BaseModel):
     quantity_sold: int
 
 
+class AnomalyFlag(BaseModel):
+    type: str
+    title: str
+    message: str
+
+
+class TopInsight(BaseModel):
+    title: str
+    message: str
+    highlight: Optional[str] = None
+    metric: Optional[float] = None
+
+
 class SalesAnalyticsResponse(BaseModel):
     summary: SalesSummary
     daily_trend: list[DailyTrend]
+    trend_bucket: str
     top_selling_items: list[TopSellingItem]
     hourly_traffic: list[HourlyTrafficPoint]
     weekday_trends: list[WeekdayTrendPoint]
@@ -263,3 +277,6 @@ class SalesAnalyticsResponse(BaseModel):
     customer_insights: CustomerInsights
     category_performance: list[CategoryPerformance]
     low_performing_items: list[LowPerformingItem]
+    anomaly_flags: list[AnomalyFlag]
+    top_insight: TopInsight
+    insight_text: list[str]

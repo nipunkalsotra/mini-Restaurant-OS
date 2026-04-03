@@ -48,7 +48,9 @@ function SalesPage() {
     }, []);
 
     const comparisonLabel = useMemo(() => {
-        const unit = sales?.growth_metrics?.comparison_unit || sales?.customer_insights?.comparison_unit;
+        const unit =
+            sales?.growth_metrics?.comparison_unit ||
+            sales?.customer_insights?.comparison_unit;
 
         switch (unit) {
             case "day":
@@ -89,7 +91,6 @@ function SalesPage() {
             setSales(res.data);
         } catch (err) {
             console.error("Error fetching sales:", err);
-            setSales(null);
             setSalesError(
                 err.response?.data?.detail ||
                 err.message ||
@@ -122,6 +123,11 @@ function SalesPage() {
     const categoryPerformance = sales.category_performance || [];
     const lowPerformingItems = sales.low_performing_items || [];
 
+    const anomalyFlags = sales.anomaly_flags || [];
+    const topInsight = sales.top_insight || {};
+    const insightText = sales.insight_text || [];
+    const trendBucket = sales.trend_bucket || "day";
+
     const paymentColors = ["#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#e74c3c"];
 
     const formatPercent = (value) => {
@@ -132,6 +138,19 @@ function SalesPage() {
     const getTrendArrow = (value) => (Number(value || 0) >= 0 ? "▲" : "▼");
 
     const getTrendColor = (value) => (Number(value || 0) >= 0 ? "green" : "red");
+
+    const formatTrendBucketLabel = (bucket) => {
+        switch (bucket) {
+            case "hour":
+                return "Hourly";
+            case "day":
+                return "Daily";
+            case "month":
+                return "Monthly";
+            default:
+                return bucket;
+        }
+    };
 
     return (
         <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
@@ -217,6 +236,68 @@ function SalesPage() {
                 </div>
             </div>
 
+            {topInsight?.message && (
+                <div
+                    style={{
+                        background: "linear-gradient(135deg, #667eea, #764ba2)",
+                        color: "white",
+                        padding: "20px",
+                        borderRadius: "16px",
+                        marginBottom: "30px",
+                        boxShadow: "0 6px 20px rgba(0,0,0,0.15)"
+                    }}
+                >
+                    <h3 style={{ margin: 0 }}>🧠 {topInsight.title}</h3>
+                    <p style={{ margin: "10px 0 0", fontSize: "16px", lineHeight: 1.5 }}>
+                        {topInsight.message}
+                    </p>
+                </div>
+            )}
+
+            {anomalyFlags.length > 0 && (
+                <div style={{ marginBottom: "30px" }}>
+                    {anomalyFlags.map((flag, i) => (
+                        <div
+                            key={i}
+                            style={{
+                                padding: "12px 16px",
+                                borderRadius: "10px",
+                                marginBottom: "10px",
+                                background:
+                                    flag.type === "danger"
+                                        ? "#ffe5e5"
+                                        : flag.type === "warning"
+                                            ? "#fff5e6"
+                                            : "#e8f9f0",
+                                color:
+                                    flag.type === "danger"
+                                        ? "#c0392b"
+                                        : flag.type === "warning"
+                                            ? "#d35400"
+                                            : "#27ae60",
+                                border: "1px solid rgba(0,0,0,0.05)"
+                            }}
+                        >
+                            <strong>{flag.title}</strong>
+                            <div style={{ marginTop: "4px" }}>{flag.message}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {insightText.length > 0 && (
+                <div style={{ ...chartCardStyle, marginBottom: "30px" }}>
+                    <h3 style={{ marginTop: 0 }}>📌 Key Insights</h3>
+                    <ul style={{ paddingLeft: "20px", marginBottom: 0 }}>
+                        {insightText.map((text, i) => (
+                            <li key={i} style={{ marginBottom: "8px", lineHeight: 1.5 }}>
+                                {text}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             {sales.show_period_insights && (
                 <div
                     style={{
@@ -283,14 +364,20 @@ function SalesPage() {
                 }}
             >
                 <div style={chartCardStyle}>
-                    <h3 style={{ marginBottom: "15px" }}>📈 Revenue Trend</h3>
+                    <h3 style={{ marginBottom: "15px" }}>
+                        📈 Revenue Trend ({formatTrendBucketLabel(trendBucket)})
+                    </h3>
                     {dailyTrend.length === 0 ? (
                         <p>No revenue data available</p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
                             <LineChart data={dailyTrend}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    interval="preserveStartEnd"
+                                />
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />
@@ -307,14 +394,20 @@ function SalesPage() {
                 </div>
 
                 <div style={chartCardStyle}>
-                    <h3 style={{ marginBottom: "15px" }}>📊 Orders Trend</h3>
+                    <h3 style={{ marginBottom: "15px" }}>
+                        📊 Orders Trend ({formatTrendBucketLabel(trendBucket)})
+                    </h3>
                     {dailyTrend.length === 0 ? (
                         <p>No orders data available</p>
                     ) : (
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={dailyTrend}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    interval="preserveStartEnd"
+                                />
                                 <YAxis />
                                 <Tooltip />
                                 <Legend />

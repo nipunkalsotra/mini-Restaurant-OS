@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract, and_
+from sqlalchemy import func, extract
 import models
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from schemas import OrderStatus
 
 
@@ -145,6 +145,60 @@ def is_filtered(range_value, start_date, end_date):
     )
 
 
+def get_trend_bucket(filter_type):
+    if filter_type == "day":
+        return "hour"
+    if filter_type == "week":
+        return "day"
+    if filter_type == "month":
+        return "day"
+    if filter_type == "year":
+        return "month"
+    if filter_type == "custom":
+        return "day"
+    return "day"
+
+
+def format_trend_label(dt_value, bucket):
+    if bucket == "hour":
+        return dt_value.strftime("%H:00")
+    if bucket == "month":
+        return dt_value.strftime("%b %Y")
+    return dt_value.strftime("%Y-%m-%d")
+
+
+def get_bucket_start(dt_value, bucket):
+    if bucket == "hour":
+        return dt_value.replace(minute=0, second=0, microsecond=0)
+    if bucket == "month":
+        return dt_value.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return dt_value.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def build_trend_data(completed_orders, all_orders, bucket):
+    revenue_map = {}
+    orders_map = {}
+
+    for order in completed_orders:
+        bucket_start = get_bucket_start(order.created_at, bucket)
+        revenue_map[bucket_start] = revenue_map.get(bucket_start, 0) + float(order.total_amount or 0)
+
+    for order in all_orders:
+        bucket_start = get_bucket_start(order.created_at, bucket)
+        orders_map[bucket_start] = orders_map.get(bucket_start, 0) + 1
+
+    all_buckets = sorted(set(revenue_map.keys()) | set(orders_map.keys()))
+
+    return [
+        {
+            "date": format_trend_label(bucket_start, bucket),
+            "revenue": round(revenue_map.get(bucket_start, 0), 2),
+            "orders": int(orders_map.get(bucket_start, 0))
+        }
+        for bucket_start in all_buckets
+    ]
+
+
 def get_customer_insights_for_period(db: Session, restaurant_id: int, period_start: datetime, period_end: datetime):
     if not period_start or not period_end:
         return {
@@ -196,15 +250,160 @@ def get_customer_insights_for_period(db: Session, restaurant_id: int, period_sta
     }
 
 
+def build_anomaly_flags(growth_metrics, customer_insights):
+    flags = []
+
+    revenue_change = growth_metrics.get("revenue_change_percentage", 0)
+    orders_change = growth_metrics.get("orders_change_percentage", 0)
+    new_customer_change = customer_insights.get("new_customers_change_percentage", 0)
+    returning_customer_change = customer_insights.get("returning_customers_change_percentage", 0)
+
+    if revenue_change <= -20:
+        flags.append({
+            "type": "danger",
+            "title": "Revenue drop detected",
+            "message": f"Revenue is down {abs(revenue_change):.2f}% versus previous period."
+        })
+
+    if orders_change <= -20:
+        flags.append({
+            "type": "warning",
+            "title": "Orders declining",
+            "message": f"Orders are down {abs(orders_change):.2f}% versus previous period."
+        })
+
+    if new_customer_change >= 25:
+        flags.append({
+            "type": "success",
+            "title": "Customer acquisition spike",
+            "message": f"New customers increased by {new_customer_change:.2f}%."
+        })
+
+    if returning_customer_change <= -20:
+        flags.append({
+            "type": "warning",
+            "title": "Retention concern",
+            "message": f"Returning customers are down {abs(returning_customer_change):.2f}%."
+        })
+
+    return flags
+
+
+def build_top_insight(growth_metrics, customer_insights, top_selling_items, category_performance, payment_breakdown):
+    top_item_name = top_selling_items[0]["item_name"] if top_selling_items else None
+    top_item_qty = top_selling_items[0]["quantity_sold"] if top_selling_items else 0
+    top_category_name = category_performance[0]["category_name"] if category_performance else None
+    top_payment_method = None
+
+    if payment_breakdown:
+        top_payment = max(payment_breakdown, key=lambda x: x["revenue"])
+        top_payment_method = top_payment["payment_method"]
+
+    revenue_change = growth_metrics.get("revenue_change_percentage", 0)
+    returning_customer_change = customer_insights.get("returning_customers_change_percentage", 0)
+
+    if top_item_name and revenue_change > 0:
+        return {
+            "title": "Best performing item",
+            "message": f"{top_item_name} led sales and revenue grew by {revenue_change:.2f}% this period.",
+            "highlight": top_item_name,
+            "metric": int(top_item_qty)
+        }
+
+    if top_category_name and returning_customer_change > 0:
+        return {
+            "title": "Retention bright spot",
+            "message": f"Returning customers improved and {top_category_name} is the top category.",
+            "highlight": top_category_name,
+            "metric": round(returning_customer_change, 2)
+        }
+
+    if top_payment_method:
+        return {
+            "title": "Payment preference",
+            "message": f"{top_payment_method} is the leading payment method in this period.",
+            "highlight": top_payment_method,
+            "metric": None
+        }
+
+    return {
+        "title": "No major trend yet",
+        "message": "Not enough data to generate a strong top insight for this period.",
+        "highlight": None,
+        "metric": None
+    }
+
+
+def build_insight_text(summary, growth_metrics, customer_insights, top_selling_items, category_performance, hourly_traffic, payment_breakdown):
+    insights = []
+
+    revenue_change = growth_metrics.get("revenue_change_percentage", 0)
+    orders_change = growth_metrics.get("orders_change_percentage", 0)
+    new_customer_change = customer_insights.get("new_customers_change_percentage", 0)
+    returning_customer_change = customer_insights.get("returning_customers_change_percentage", 0)
+
+    if revenue_change > 0:
+        insights.append(f"Revenue increased by {revenue_change:.2f}% compared to the previous period.")
+    elif revenue_change < 0:
+        insights.append(f"Revenue decreased by {abs(revenue_change):.2f}% compared to the previous period.")
+    else:
+        insights.append("Revenue is flat versus the previous period.")
+
+    if orders_change > 0:
+        insights.append(f"Orders are up by {orders_change:.2f}%, showing stronger purchase activity.")
+    elif orders_change < 0:
+        insights.append(f"Orders are down by {abs(orders_change):.2f}%, so demand is softer than the previous period.")
+
+    if new_customer_change > 0:
+        insights.append(f"New customer acquisition improved by {new_customer_change:.2f}%.")
+    elif new_customer_change < 0:
+        insights.append(f"New customer acquisition fell by {abs(new_customer_change):.2f}%.")
+
+    if returning_customer_change > 0:
+        insights.append(f"Returning customer count improved by {returning_customer_change:.2f}%, which is a good retention sign.")
+    elif returning_customer_change < 0:
+        insights.append(f"Returning customer count dropped by {abs(returning_customer_change):.2f}%, suggesting a retention issue.")
+
+    if top_selling_items:
+        top_item = top_selling_items[0]
+        insights.append(
+            f"The best selling item is {top_item['item_name']} with {top_item['quantity_sold']} units sold."
+        )
+
+    if category_performance:
+        best_category = max(category_performance, key=lambda x: x["revenue"])
+        insights.append(
+            f"The top category is {best_category['category_name']} with ₹{best_category['revenue']:.2f} in revenue."
+        )
+
+    if hourly_traffic:
+        peak_hour = max(hourly_traffic, key=lambda x: x["orders"])
+        insights.append(
+            f"Peak traffic hour is {peak_hour['hour']}:00 with {peak_hour['orders']} orders."
+        )
+
+    if payment_breakdown:
+        leading_payment = max(payment_breakdown, key=lambda x: x["revenue"])
+        insights.append(
+            f"{leading_payment['payment_method']} is the leading payment method by revenue."
+        )
+
+    if summary.get("avg_order_value", 0) > 0:
+        insights.append(
+            f"Average order value for this period is ₹{summary['avg_order_value']:.2f}."
+        )
+
+    return insights
+
+
 def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_date):
+    filter_type = get_filter_type(range, start_date, end_date)
+    trend_bucket = get_trend_bucket(filter_type)
     comparison_unit = get_comparison_unit(range, start_date, end_date)
     current_start, current_end = get_current_period(range, start_date, end_date)
     prev_start, prev_end = get_previous_period(range, start_date, end_date)
     show_period_insights = is_filtered(range, start_date, end_date)
 
-    # =========================
-    # BASE QUERIES
-    # =========================
     completed_query = db.query(models.Order).filter(
         models.Order.restaurant_id == restaurant_id,
         models.Order.status == OrderStatus.completed
@@ -221,9 +420,9 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         all_orders_query, models.Order, range, start_date, end_date
     )
 
-    # =========================
-    # SUMMARY
-    # =========================
+    completed_orders_list = completed_query.all()
+    all_orders_list = all_orders_query.all()
+
     total_orders = completed_query.count()
 
     total_revenue = completed_query.with_entities(
@@ -232,40 +431,8 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
 
     avg_order_value = float(total_revenue) / total_orders if total_orders else 0
 
-    # =========================
-    # DAILY TREND
-    # =========================
-    revenue_data = completed_query.with_entities(
-        func.date(models.Order.created_at),
-        func.sum(models.Order.total_amount)
-    ).group_by(
-        func.date(models.Order.created_at)
-    ).all()
+    daily_trend = build_trend_data(completed_orders_list, all_orders_list, trend_bucket)
 
-    orders_data = all_orders_query.with_entities(
-        func.date(models.Order.created_at),
-        func.count(models.Order.order_id)
-    ).group_by(
-        func.date(models.Order.created_at)
-    ).all()
-
-    revenue_map = {str(d[0]): float(d[1] or 0) for d in revenue_data}
-    orders_map = {str(d[0]): int(d[1]) for d in orders_data}
-
-    all_dates = sorted(set(revenue_map.keys()) | set(orders_map.keys()))
-
-    daily_trend = [
-        {
-            "date": date,
-            "revenue": revenue_map.get(date, 0),
-            "orders": orders_map.get(date, 0)
-        }
-        for date in all_dates
-    ]
-
-    # =========================
-    # TOP SELLING ITEMS
-    # =========================
     top_items_query = db.query(
         models.OrderItem.item_name,
         func.sum(models.OrderItem.quantity),
@@ -296,9 +463,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for i in top_items_data
     ]
 
-    # =========================
-    # HOURLY TRAFFIC
-    # =========================
     hourly_data = all_orders_query.with_entities(
         extract("hour", models.Order.created_at),
         func.count(models.Order.order_id)
@@ -314,9 +478,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for h in hourly_data
     ]
 
-    # =========================
-    # WEEKDAY TRENDS
-    # =========================
     weekday_data = completed_query.with_entities(
         extract("dow", models.Order.created_at),
         func.sum(models.Order.total_amount),
@@ -336,9 +497,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for w in weekday_data
     ]
 
-    # =========================
-    # PAYMENT BREAKDOWN
-    # =========================
     payment_data = all_orders_query.with_entities(
         models.Order.payment_method,
         func.count(models.Order.order_id),
@@ -356,9 +514,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for p in payment_data
     ]
 
-    # =========================
-    # GROWTH METRICS
-    # =========================
     previous_orders = 0
     previous_revenue = 0.0
     revenue_change_percentage = 0.0
@@ -390,9 +545,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         "orders_change_percentage": float(orders_change_percentage)
     }
 
-    # =========================
-    # CUSTOMER INSIGHTS
-    # =========================
     current_customer_metrics = {
         "new_customers": 0,
         "returning_customers": 0
@@ -432,9 +584,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         )
     }
 
-    # =========================
-    # CATEGORY PERFORMANCE
-    # =========================
     category_query = db.query(
         models.Category.category_name,
         func.sum(models.OrderItem.quantity * models.OrderItem.price_at_order),
@@ -456,6 +605,8 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
 
     category_data = category_query.group_by(
         models.Category.category_name
+    ).order_by(
+        func.sum(models.OrderItem.quantity * models.OrderItem.price_at_order).desc()
     ).all()
 
     category_performance = [
@@ -467,9 +618,6 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for c in category_data
     ]
 
-    # =========================
-    # LOW PERFORMING ITEMS
-    # =========================
     low_items_query = db.query(
         models.OrderItem.item_name,
         func.sum(models.OrderItem.quantity)
@@ -498,16 +646,34 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         for i in low_items_data
     ]
 
-    # =========================
-    # FINAL RESPONSE
-    # =========================
+    summary = {
+        "total_orders": int(total_orders),
+        "total_revenue": float(total_revenue),
+        "avg_order_value": float(avg_order_value)
+    }
+
+    anomaly_flags = build_anomaly_flags(growth_metrics, customer_insights)
+    top_insight = build_top_insight(
+        growth_metrics,
+        customer_insights,
+        top_selling_items,
+        category_performance,
+        payment_breakdown
+    )
+    insight_text = build_insight_text(
+        summary,
+        growth_metrics,
+        customer_insights,
+        top_selling_items,
+        category_performance,
+        hourly_traffic,
+        payment_breakdown
+    )
+
     return {
-        "summary": {
-            "total_orders": int(total_orders),
-            "total_revenue": float(total_revenue),
-            "avg_order_value": float(avg_order_value)
-        },
+        "summary": summary,
         "daily_trend": daily_trend,
+        "trend_bucket": trend_bucket,
         "top_selling_items": top_selling_items,
         "hourly_traffic": hourly_traffic,
         "weekday_trends": weekday_trends,
@@ -516,5 +682,8 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         "customer_insights": customer_insights,
         "category_performance": category_performance,
         "low_performing_items": low_performing_items,
-        "show_period_insights": show_period_insights
+        "show_period_insights": show_period_insights,
+        "anomaly_flags": anomaly_flags,
+        "top_insight": top_insight,
+        "insight_text": insight_text
     }
