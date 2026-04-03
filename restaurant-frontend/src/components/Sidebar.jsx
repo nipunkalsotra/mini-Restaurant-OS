@@ -52,7 +52,6 @@ function Sidebar() {
           <FaConciergeBell /> Kitchen
         </NavLink>
 
-        {/* ✅ Billing Page Link */}
         <NavLink to="/billing" style={({ isActive }) => isActive ? { ...linkStyle, ...activeStyle } : linkStyle}>
           <FaMoneyCheckAlt /> Billing
         </NavLink>

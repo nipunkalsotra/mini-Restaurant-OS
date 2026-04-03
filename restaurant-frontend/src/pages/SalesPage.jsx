@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import API from "../api/api";
 import DateFilter from "../components/DataFilter";
 import {
@@ -35,6 +35,7 @@ function SalesPage() {
             try {
                 const res = await API.get("/restaurants");
                 setRestaurants(res.data);
+
                 if (res.data.length > 0) {
                     setSelectedRestaurant(res.data[0].restaurant_id);
                 }
@@ -45,6 +46,25 @@ function SalesPage() {
 
         fetchRestaurants();
     }, []);
+
+    const comparisonLabel = useMemo(() => {
+        const unit = sales?.growth_metrics?.comparison_unit || sales?.customer_insights?.comparison_unit;
+
+        switch (unit) {
+            case "day":
+                return "Day-over-Day";
+            case "week":
+                return "Week-over-Week";
+            case "month":
+                return "Month-over-Month";
+            case "year":
+                return "Year-over-Year";
+            case "custom":
+                return "Previous Period Comparison";
+            default:
+                return "";
+        }
+    }, [sales]);
 
     const fetchSales = useCallback(async (restaurantId) => {
         try {
@@ -69,6 +89,7 @@ function SalesPage() {
             setSales(res.data);
         } catch (err) {
             console.error("Error fetching sales:", err);
+            setSales(null);
             setSalesError(
                 err.response?.data?.detail ||
                 err.message ||
@@ -89,6 +110,10 @@ function SalesPage() {
     if (salesError && !sales) return <h2 style={{ color: "red" }}>Error: {salesError}</h2>;
     if (!sales) return <h2>Loading sales data...</h2>;
 
+    const summary = sales.summary || {};
+    const growthMetrics = sales.growth_metrics || {};
+    const customerInsights = sales.customer_insights || {};
+
     const dailyTrend = sales.daily_trend || [];
     const topItems = sales.top_selling_items || [];
     const hourlyTraffic = sales.hourly_traffic || [];
@@ -99,12 +124,30 @@ function SalesPage() {
 
     const paymentColors = ["#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#e74c3c"];
 
+    const formatPercent = (value) => {
+        const num = Number(value || 0);
+        return `${Math.abs(num).toFixed(2)}%`;
+    };
+
+    const getTrendArrow = (value) => (Number(value || 0) >= 0 ? "▲" : "▼");
+
+    const getTrendColor = (value) => (Number(value || 0) >= 0 ? "green" : "red");
+
     return (
         <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "20px"
+                }}
+            >
                 <h1 style={{ margin: 0 }}>📊 Sales Dashboard</h1>
                 {isSalesLoading && (
-                    <span style={{ color: "#666", fontSize: "14px" }}>Updating sales data...</span>
+                    <span style={{ color: "#666", fontSize: "14px" }}>
+                        Updating sales data...
+                    </span>
                 )}
             </div>
 
@@ -116,13 +159,18 @@ function SalesPage() {
 
             <DateFilter onChange={setDateFilter} />
 
-            <h3 style={{ marginBottom: "15px", color: "#666" }}>
-                Showing: {
-                    dateFilter.startDate
-                        ? `${dateFilter.startDate} → ${dateFilter.endDate || ""}`
-                        : dateFilter.range
-                }
+            <h3 style={{ marginBottom: "8px", color: "#666" }}>
+                Showing:{" "}
+                {dateFilter.startDate
+                    ? `${dateFilter.startDate} → ${dateFilter.endDate || ""}`
+                    : dateFilter.range}
             </h3>
+
+            {comparisonLabel && (
+                <p style={{ marginTop: 0, marginBottom: "20px", color: "#888" }}>
+                    Analytics comparison mode: <strong>{comparisonLabel}</strong>
+                </p>
+            )}
 
             <div style={{ marginBottom: "20px" }}>
                 <label style={{ fontWeight: "600" }}>
@@ -155,17 +203,17 @@ function SalesPage() {
             >
                 <div style={cardStyle}>
                     <h3 style={cardTitle}>💰 Revenue</h3>
-                    <h2 style={cardValue}>₹ {sales.summary.total_revenue}</h2>
+                    <h2 style={cardValue}>₹ {Number(summary.total_revenue || 0).toFixed(2)}</h2>
                 </div>
 
                 <div style={cardStyle}>
                     <h3 style={cardTitle}>📦 Orders</h3>
-                    <h2 style={cardValue}>{sales.summary.total_orders}</h2>
+                    <h2 style={cardValue}>{summary.total_orders || 0}</h2>
                 </div>
 
                 <div style={cardStyle}>
                     <h3 style={cardTitle}>📊 Avg Order Value</h3>
-                    <h2 style={cardValue}>₹ {Math.round(sales.summary.avg_order_value)}</h2>
+                    <h2 style={cardValue}>₹ {Math.round(summary.avg_order_value || 0)}</h2>
                 </div>
             </div>
 
@@ -179,54 +227,48 @@ function SalesPage() {
                     }}
                 >
                     <div style={chartCardStyle}>
-                        <h3 style={{ marginBottom: "15px" }}>📈 Growth Metrics</h3>
-                        <div style={{ display: "flex", gap: "30px" }}>
-                            <div>
-                                <strong>Revenue Growth</strong>
-                                <p
-                                    style={{
-                                        fontSize: "22px",
-                                        fontWeight: "bold",
-                                        color: sales.growth_metrics?.revenue_change_percentage >= 0 ? "green" : "red"
-                                    }}
-                                >
-                                    {sales.growth_metrics?.revenue_change_percentage >= 0 ? "▲" : "▼"}{" "}
-                                    {Math.abs(sales.growth_metrics?.revenue_change_percentage || 0).toFixed(2)}%
-                                </p>
-                            </div>
+                        <div style={sectionHeaderStyle}>
+                            <h3 style={{ margin: 0 }}>📈 Growth Metrics</h3>
+                            {comparisonLabel && <span style={badgeStyle}>{comparisonLabel}</span>}
+                        </div>
 
-                            <div>
-                                <strong>Orders Growth</strong>
-                                <p
-                                    style={{
-                                        fontSize: "22px",
-                                        fontWeight: "bold",
-                                        color: sales.growth_metrics?.orders_change_percentage >= 0 ? "green" : "red"
-                                    }}
-                                >
-                                    {sales.growth_metrics?.orders_change_percentage >= 0 ? "▲" : "▼"}{" "}
-                                    {Math.abs(sales.growth_metrics?.orders_change_percentage || 0).toFixed(2)}%
-                                </p>
-                            </div>
+                        <div style={metricsGridStyle}>
+                            <MetricCard
+                                title="Revenue Growth"
+                                value={`${getTrendArrow(growthMetrics.revenue_change_percentage)} ${formatPercent(growthMetrics.revenue_change_percentage)}`}
+                                color={getTrendColor(growthMetrics.revenue_change_percentage)}
+                                subtext={`Current: ₹${Number(growthMetrics.current_revenue || 0).toFixed(2)} | Previous: ₹${Number(growthMetrics.previous_revenue || 0).toFixed(2)}`}
+                            />
+
+                            <MetricCard
+                                title="Orders Growth"
+                                value={`${getTrendArrow(growthMetrics.orders_change_percentage)} ${formatPercent(growthMetrics.orders_change_percentage)}`}
+                                color={getTrendColor(growthMetrics.orders_change_percentage)}
+                                subtext={`Current: ${growthMetrics.current_orders || 0} | Previous: ${growthMetrics.previous_orders || 0}`}
+                            />
                         </div>
                     </div>
 
                     <div style={chartCardStyle}>
-                        <h3 style={{ marginBottom: "15px" }}>👥 Customer Insights</h3>
-                        <div style={{ display: "flex", gap: "30px" }}>
-                            <div>
-                                <strong>New Customers</strong>
-                                <p style={{ fontSize: "26px", fontWeight: "bold" }}>
-                                    {sales.customer_insights?.new_customers || 0}
-                                </p>
-                            </div>
+                        <div style={sectionHeaderStyle}>
+                            <h3 style={{ margin: 0 }}>👥 Customer Insights</h3>
+                            {comparisonLabel && <span style={badgeStyle}>{comparisonLabel}</span>}
+                        </div>
 
-                            <div>
-                                <strong>Returning Customers</strong>
-                                <p style={{ fontSize: "26px", fontWeight: "bold" }}>
-                                    {sales.customer_insights?.returning_customers || 0}
-                                </p>
-                            </div>
+                        <div style={metricsGridStyle}>
+                            <MetricCard
+                                title="New Customers"
+                                value={customerInsights.current_new_customers || 0}
+                                color="#222"
+                                subtext={`Previous: ${customerInsights.previous_new_customers || 0} | Change: ${formatPercent(customerInsights.new_customers_change_percentage)}`}
+                            />
+
+                            <MetricCard
+                                title="Returning Customers"
+                                value={customerInsights.current_returning_customers || 0}
+                                color="#222"
+                                subtext={`Previous: ${customerInsights.previous_returning_customers || 0} | Change: ${formatPercent(customerInsights.returning_customers_change_percentage)}`}
+                            />
                         </div>
                     </div>
                 </div>
@@ -462,6 +504,34 @@ function SalesPage() {
     );
 }
 
+function MetricCard({ title, value, color, subtext }) {
+    return (
+        <div
+            style={{
+                background: "#fafafa",
+                borderRadius: "12px",
+                padding: "14px",
+                border: "1px solid #eee"
+            }}
+        >
+            <strong>{title}</strong>
+            <p
+                style={{
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color,
+                    margin: "10px 0 6px"
+                }}
+            >
+                {value}
+            </p>
+            <p style={{ margin: 0, color: "#777", fontSize: "13px", lineHeight: 1.5 }}>
+                {subtext}
+            </p>
+        </div>
+    );
+}
+
 const cardStyle = {
     background: "#fff",
     borderRadius: "16px",
@@ -485,6 +555,29 @@ const cardTitle = {
 const cardValue = {
     fontSize: "36px",
     margin: 0
+};
+
+const badgeStyle = {
+    fontSize: "12px",
+    background: "#eef3ff",
+    color: "#335dff",
+    padding: "6px 10px",
+    borderRadius: "999px",
+    fontWeight: 600
+};
+
+const sectionHeaderStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "15px",
+    gap: "10px"
+};
+
+const metricsGridStyle = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "20px"
 };
 
 export default SalesPage;

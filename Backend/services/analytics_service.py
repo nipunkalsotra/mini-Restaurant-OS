@@ -1,80 +1,206 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, and_
 import models
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from schemas import OrderStatus
 
 
-def apply_date_filter(query, model, range, start_date, end_date):
+def start_of_day(dt: datetime) -> datetime:
+    return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def end_of_day(dt: datetime) -> datetime:
+    return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+
+def safe_percentage_change(current, previous):
+    if previous == 0:
+        return 100.0 if current > 0 else 0.0
+    return float(((current - previous) / previous) * 100)
+
+
+def get_filter_type(range_value, start_date, end_date):
     if start_date and end_date:
-        start = datetime.fromisoformat(start_date)
-        end = datetime.fromisoformat(end_date)
-        end = end.replace(hour=23, minute=59, second=59)
+        return "custom"
 
-        query = query.filter(
-            model.created_at >= start,
-            model.created_at <= end
-        )
+    if not range_value or range_value == "all":
+        return "all"
 
-    elif range:
-        now = datetime.utcnow()
+    range_value = range_value.lower()
 
-        if range == "today":
-            query = query.filter(func.date(model.created_at) == now.date())
+    if range_value in ["today", "daily", "day"]:
+        return "day"
+    if range_value in ["7d", "week", "weekly"]:
+        return "week"
+    if range_value in ["30d", "month", "monthly"]:
+        return "month"
+    if range_value in ["year", "yearly"]:
+        return "year"
 
-        elif range == "7d":
-            query = query.filter(model.created_at >= now - timedelta(days=7))
-
-        elif range == "30d":
-            query = query.filter(model.created_at >= now - timedelta(days=30))
-
-    return query
+    return "all"
 
 
-def get_previous_period(range, start_date, end_date):
-    if start_date and end_date:
-        start = datetime.fromisoformat(start_date)
-        end = datetime.fromisoformat(end_date)
-        duration = end - start
-        prev_end = start - timedelta(days=1)
-        prev_start = prev_end - duration
-        prev_start = prev_start.replace(hour=0, minute=0, second=0)
-        prev_end = prev_end.replace(hour=23, minute=59, second=59)
-        return prev_start, prev_end
-
+def get_current_period(range_value, start_date, end_date):
     now = datetime.utcnow()
 
-    if range == "today":
-        prev_day = now - timedelta(days=1)
-        prev_start = prev_day.replace(hour=0, minute=0, second=0)
-        prev_end = prev_day.replace(hour=23, minute=59, second=59)
+    if start_date and end_date:
+        start = start_of_day(datetime.fromisoformat(start_date))
+        end = end_of_day(datetime.fromisoformat(end_date))
+        return start, end
+
+    filter_type = get_filter_type(range_value, start_date, end_date)
+
+    if filter_type == "day":
+        return start_of_day(now), end_of_day(now)
+
+    if filter_type == "week":
+        start = start_of_day(now - timedelta(days=6))
+        end = end_of_day(now)
+        return start, end
+
+    if filter_type == "month":
+        start = start_of_day(now - timedelta(days=29))
+        end = end_of_day(now)
+        return start, end
+
+    if filter_type == "year":
+        start = start_of_day(now.replace(month=1, day=1))
+        end = end_of_day(now)
+        return start, end
+
+    return None, None
+
+
+def get_previous_period(range_value, start_date, end_date):
+    current_start, current_end = get_current_period(range_value, start_date, end_date)
+    filter_type = get_filter_type(range_value, start_date, end_date)
+
+    if not current_start or not current_end or filter_type == "all":
+        return None, None
+
+    if filter_type == "day":
+        prev_day = current_start - timedelta(days=1)
+        return start_of_day(prev_day), end_of_day(prev_day)
+
+    if filter_type == "week":
+        prev_end = current_start - timedelta(microseconds=1)
+        prev_start = start_of_day(current_start - timedelta(days=7))
+        return prev_start, end_of_day(prev_end)
+
+    if filter_type == "month":
+        prev_end = current_start - timedelta(microseconds=1)
+        prev_start = start_of_day(current_start - timedelta(days=30))
+        return prev_start, end_of_day(prev_end)
+
+    if filter_type == "year":
+        previous_year = current_start.year - 1
+        prev_start = datetime(previous_year, 1, 1, 0, 0, 0)
+        prev_end = datetime(previous_year, 12, 31, 23, 59, 59, 999999)
         return prev_start, prev_end
 
-    if range == "7d":
-        prev_end = now - timedelta(days=7)
-        prev_start = prev_end - timedelta(days=7)
-        return prev_start, prev_end
-
-    if range == "30d":
-        prev_end = now - timedelta(days=30)
-        prev_start = prev_end - timedelta(days=30)
+    if filter_type == "custom":
+        duration = current_end - current_start
+        prev_end = current_start - timedelta(microseconds=1)
+        prev_start = current_start - duration - timedelta(microseconds=1)
+        prev_start = start_of_day(prev_start)
+        prev_end = end_of_day(prev_end)
         return prev_start, prev_end
 
     return None, None
 
-def is_single_day_filter(range, start_date, end_date):
-    if start_date and end_date:
-        start = datetime.fromisoformat(start_date).date()
-        end = datetime.fromisoformat(end_date).date()
-        return start == end
 
-    if range == "today":
-        return True
+def get_comparison_unit(range_value, start_date, end_date):
+    filter_type = get_filter_type(range_value, start_date, end_date)
 
-    return False
+    if filter_type == "day":
+        return "day"
+    if filter_type == "week":
+        return "week"
+    if filter_type == "month":
+        return "month"
+    if filter_type == "year":
+        return "year"
+    if filter_type == "custom":
+        return "custom"
+
+    return None
+
+
+def apply_date_filter(query, model, range_value, start_date, end_date):
+    period_start, period_end = get_current_period(range_value, start_date, end_date)
+
+    if period_start and period_end:
+        query = query.filter(
+            model.created_at >= period_start,
+            model.created_at <= period_end
+        )
+
+    return query
+
+
+def is_filtered(range_value, start_date, end_date):
+    return bool(
+        (start_date and end_date) or
+        (range_value and range_value.lower() != "all")
+    )
+
+
+def get_customer_insights_for_period(db: Session, restaurant_id: int, period_start: datetime, period_end: datetime):
+    if not period_start or not period_end:
+        return {
+            "new_customers": 0,
+            "returning_customers": 0
+        }
+
+    customer_first_orders = db.query(
+        models.Order.customer_id,
+        func.min(models.Order.created_at).label("first_order_at")
+    ).filter(
+        models.Order.restaurant_id == restaurant_id,
+        models.Order.customer_id.isnot(None)
+    ).group_by(
+        models.Order.customer_id
+    ).subquery()
+
+    customers_in_period = db.query(
+        models.Order.customer_id
+    ).filter(
+        models.Order.restaurant_id == restaurant_id,
+        models.Order.customer_id.isnot(None),
+        models.Order.created_at >= period_start,
+        models.Order.created_at <= period_end
+    ).distinct().subquery()
+
+    new_customers = db.query(func.count()).select_from(
+        customers_in_period
+    ).join(
+        customer_first_orders,
+        customer_first_orders.c.customer_id == customers_in_period.c.customer_id
+    ).filter(
+        customer_first_orders.c.first_order_at >= period_start,
+        customer_first_orders.c.first_order_at <= period_end
+    ).scalar() or 0
+
+    returning_customers = db.query(func.count()).select_from(
+        customers_in_period
+    ).join(
+        customer_first_orders,
+        customer_first_orders.c.customer_id == customers_in_period.c.customer_id
+    ).filter(
+        customer_first_orders.c.first_order_at < period_start
+    ).scalar() or 0
+
+    return {
+        "new_customers": int(new_customers),
+        "returning_customers": int(returning_customers)
+    }
 
 
 def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_date):
+    comparison_unit = get_comparison_unit(range, start_date, end_date)
+    current_start, current_end = get_current_period(range, start_date, end_date)
+    prev_start, prev_end = get_previous_period(range, start_date, end_date)
+    show_period_insights = is_filtered(range, start_date, end_date)
 
     # =========================
     # BASE QUERIES
@@ -124,7 +250,7 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     ).all()
 
     revenue_map = {str(d[0]): float(d[1] or 0) for d in revenue_data}
-    orders_map = {str(d[0]): d[1] for d in orders_data}
+    orders_map = {str(d[0]): int(d[1]) for d in orders_data}
 
     all_dates = sorted(set(revenue_map.keys()) | set(orders_map.keys()))
 
@@ -138,7 +264,7 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     ]
 
     # =========================
-    # PHASE 2 - TOP SELLING ITEMS
+    # TOP SELLING ITEMS
     # =========================
     top_items_query = db.query(
         models.OrderItem.item_name,
@@ -164,14 +290,14 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     top_selling_items = [
         {
             "item_name": i[0],
-            "quantity_sold": int(i[1]),
+            "quantity_sold": int(i[1] or 0),
             "revenue": float(i[2] or 0)
         }
         for i in top_items_data
     ]
 
     # =========================
-    # PHASE 2 - HOURLY TRAFFIC
+    # HOURLY TRAFFIC
     # =========================
     hourly_data = all_orders_query.with_entities(
         extract("hour", models.Order.created_at),
@@ -183,13 +309,13 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     hourly_traffic = [
         {
             "hour": int(h[0]),
-            "orders": h[1]
+            "orders": int(h[1])
         }
         for h in hourly_data
     ]
 
     # =========================
-    # PHASE 2 - WEEKDAY TRENDS
+    # WEEKDAY TRENDS
     # =========================
     weekday_data = completed_query.with_entities(
         extract("dow", models.Order.created_at),
@@ -205,13 +331,13 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         {
             "day": days_map[int(w[0])],
             "revenue": float(w[1] or 0),
-            "orders": w[2]
+            "orders": int(w[2] or 0)
         }
         for w in weekday_data
     ]
 
     # =========================
-    # PHASE 2 - PAYMENT BREAKDOWN
+    # PAYMENT BREAKDOWN
     # =========================
     payment_data = all_orders_query.with_entities(
         models.Order.payment_method,
@@ -224,30 +350,24 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     payment_breakdown = [
         {
             "payment_method": p[0] or "Unknown",
-            "orders": p[1],
+            "orders": int(p[1] or 0),
             "revenue": float(p[2] or 0)
         }
         for p in payment_data
     ]
 
-       # =========================
-    # PHASE 3 - GROWTH METRICS
     # =========================
-    show_period_insights = not is_single_day_filter(range, start_date, end_date)
-    prev_start, prev_end = get_previous_period(range, start_date, end_date)
-
-    previous_completed_query = db.query(models.Order).filter(
-        models.Order.restaurant_id == restaurant_id,
-        models.Order.status == OrderStatus.completed
-    )
-
+    # GROWTH METRICS
+    # =========================
     previous_orders = 0
-    previous_revenue = 0
-    revenue_change_percentage = 0
-    orders_change_percentage = 0
+    previous_revenue = 0.0
+    revenue_change_percentage = 0.0
+    orders_change_percentage = 0.0
 
-    if prev_start and prev_end:
-        previous_completed_query = previous_completed_query.filter(
+    if show_period_insights and prev_start and prev_end:
+        previous_completed_query = db.query(models.Order).filter(
+            models.Order.restaurant_id == restaurant_id,
+            models.Order.status == OrderStatus.completed,
             models.Order.created_at >= prev_start,
             models.Order.created_at <= prev_end
         )
@@ -257,54 +377,63 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
             func.sum(models.Order.total_amount)
         ).scalar() or 0
 
-        if previous_revenue == 0:
-            revenue_change_percentage = 100 if total_revenue > 0 else 0
-        else:
-            revenue_change_percentage = (
-                (total_revenue - previous_revenue) / previous_revenue
-            ) * 100
-
-        if previous_orders == 0:
-            orders_change_percentage = 100 if total_orders > 0 else 0
-        else:
-            orders_change_percentage = (
-                (total_orders - previous_orders) / previous_orders
-            ) * 100
+        revenue_change_percentage = safe_percentage_change(total_revenue, previous_revenue)
+        orders_change_percentage = safe_percentage_change(total_orders, previous_orders)
 
     growth_metrics = {
+        "comparison_unit": comparison_unit,
+        "current_revenue": float(total_revenue),
+        "previous_revenue": float(previous_revenue),
         "revenue_change_percentage": float(revenue_change_percentage),
+        "current_orders": int(total_orders),
+        "previous_orders": int(previous_orders),
         "orders_change_percentage": float(orders_change_percentage)
     }
 
     # =========================
-    # PHASE 3 - CUSTOMER INSIGHTS
+    # CUSTOMER INSIGHTS
     # =========================
-    customer_orders_query = db.query(
-        models.Order.customer_id,
-        func.count(models.Order.order_id)
-    ).filter(
-        models.Order.restaurant_id == restaurant_id,
-        models.Order.customer_id.isnot(None)
-    )
+    current_customer_metrics = {
+        "new_customers": 0,
+        "returning_customers": 0
+    }
+    previous_customer_metrics = {
+        "new_customers": 0,
+        "returning_customers": 0
+    }
 
-    customer_orders_query = apply_date_filter(
-        customer_orders_query, models.Order, range, start_date, end_date
-    )
+    if current_start and current_end:
+        current_customer_metrics = get_customer_insights_for_period(
+            db, restaurant_id, current_start, current_end
+        )
 
-    customer_orders_data = customer_orders_query.group_by(
-        models.Order.customer_id
-    ).all()
-
-    new_customers = sum(1 for c in customer_orders_data if c[1] == 1)
-    returning_customers = sum(1 for c in customer_orders_data if c[1] > 1)
+    if show_period_insights and prev_start and prev_end:
+        previous_customer_metrics = get_customer_insights_for_period(
+            db, restaurant_id, prev_start, prev_end
+        )
 
     customer_insights = {
-        "new_customers": new_customers,
-        "returning_customers": returning_customers
+        "comparison_unit": comparison_unit,
+        "current_new_customers": int(current_customer_metrics["new_customers"]),
+        "previous_new_customers": int(previous_customer_metrics["new_customers"]),
+        "new_customers_change_percentage": float(
+            safe_percentage_change(
+                current_customer_metrics["new_customers"],
+                previous_customer_metrics["new_customers"]
+            )
+        ),
+        "current_returning_customers": int(current_customer_metrics["returning_customers"]),
+        "previous_returning_customers": int(previous_customer_metrics["returning_customers"]),
+        "returning_customers_change_percentage": float(
+            safe_percentage_change(
+                current_customer_metrics["returning_customers"],
+                previous_customer_metrics["returning_customers"]
+            )
+        )
     }
 
     # =========================
-    # PHASE 3 - CATEGORY PERFORMANCE
+    # CATEGORY PERFORMANCE
     # =========================
     category_query = db.query(
         models.Category.category_name,
@@ -333,13 +462,13 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         {
             "category_name": c[0],
             "revenue": float(c[1] or 0),
-            "orders": c[2]
+            "orders": int(c[2] or 0)
         }
         for c in category_data
     ]
 
     # =========================
-    # PHASE 3 - LOW PERFORMING ITEMS
+    # LOW PERFORMING ITEMS
     # =========================
     low_items_query = db.query(
         models.OrderItem.item_name,
@@ -364,7 +493,7 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     low_performing_items = [
         {
             "item_name": i[0],
-            "quantity_sold": int(i[1])
+            "quantity_sold": int(i[1] or 0)
         }
         for i in low_items_data
     ]
@@ -374,7 +503,7 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
     # =========================
     return {
         "summary": {
-            "total_orders": total_orders,
+            "total_orders": int(total_orders),
             "total_revenue": float(total_revenue),
             "avg_order_value": float(avg_order_value)
         },
@@ -387,5 +516,5 @@ def get_sales_analytics(db: Session, restaurant_id: int, range, start_date, end_
         "customer_insights": customer_insights,
         "category_performance": category_performance,
         "low_performing_items": low_performing_items,
-        "show_period_insights" : show_period_insights
+        "show_period_insights": show_period_insights
     }
