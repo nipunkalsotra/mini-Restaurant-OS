@@ -94,6 +94,7 @@ class OrderStatus(str, Enum):
 
 
 class PaymentMethod(str, Enum):
+    na = "na"
     cash = "cash"
     upi = "upi"
     card = "card"

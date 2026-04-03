@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 from database import Base
 from sqlalchemy import Enum
-from schemas import OrderStatus, PaymentStatus
+from schemas import OrderStatus, PaymentStatus, PaymentMethod
 
 class Restaurant(Base):
     __tablename__ = "restaurants"
@@ -95,7 +95,7 @@ class Order(Base):
     total_amount = Column(Float, default=0)
     status = Column(Enum(OrderStatus), default= OrderStatus.pending, nullable= False)
     payment_status = Column(Enum(PaymentStatus), default= PaymentStatus.unpaid, nullable= False)
-    payment_method = Column(Text, nullable= False)
+    payment_method = Column(Enum(PaymentMethod), default = PaymentMethod.na, nullable= False)
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default= datetime.utcnow, onupdate= datetime.utcnow)
@@ -108,7 +108,7 @@ class Order(Base):
         CheckConstraint("table_number >= 0", name = "tb_num_neg"),
         CheckConstraint("total_amount >= 0", name = "tt_amt_neg"),
         CheckConstraint("status IN ('pending','preparing','ready','served','completed','cancelled')", name="stt_ch"),
-        CheckConstraint("payment_method IN ('cash', 'upi' ,'card')"),
+        CheckConstraint("payment_method IN ('na', 'cash', 'upi' ,'card')"),
     )
 
 class OrderItem(Base):

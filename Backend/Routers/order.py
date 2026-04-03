@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix= "/orders", tags = ["Orders"])
 
-@router.post("", response_model=schemas.OrderResponse)
+@router.post("", response_model=schemas.OrderDetailResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
     restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == order.restaurant_id
@@ -66,7 +66,17 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_order)
 
-        return schemas.OrderResponse.from_orm(new_order)
+        order_items = db.query(models.OrderItem).filter(
+            models.OrderItem.order_id == new_order.order_id
+        ).all()
+
+        order_response = schemas.OrderResponse.from_orm(new_order)
+        order_response.customer_name = new_order.customer.customer_name if new_order.customer else None
+
+        return schemas.OrderDetailResponse(
+            order=order_response,
+            items=order_items
+        )
     
     except Exception as e:
         db.rollback()

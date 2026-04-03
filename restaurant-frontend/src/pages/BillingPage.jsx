@@ -32,8 +32,10 @@ function BillingPage() {
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: "", phone: "" });
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [selectedOrderStatus, setSelectedOrderStatus] = useState(null);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generatedBill, setGeneratedBill] = useState(null);
 
   const [discountType, setDiscountType] = useState("percent");
   const [discountValue, setDiscountValue] = useState(0);
@@ -49,7 +51,9 @@ function BillingPage() {
       setCart(location.state.cart);
     } else {
       const saved = localStorage.getItem("cart");
-      if (saved) setCart(JSON.parse(saved));
+      if (saved) {
+        setCart(JSON.parse(saved));
+      }
     }
   }, [location.state]);
 
@@ -75,7 +79,7 @@ function BillingPage() {
   const filteredCustomers = customers.filter((c) => {
     const search = customerSearch.toLowerCase();
     return (
-      c.customer_name.toLowerCase().includes(search) ||
+      (c.customer_name || "").toLowerCase().includes(search) ||
       (c.customer_phone || "").includes(search)
     );
   });
@@ -117,6 +121,10 @@ function BillingPage() {
     [taxableAmount, taxAmount]
   );
 
+  const disableSaveUnpaidForSelectedOrder =
+    !!selectedOrderId &&
+    ["served", "completed", "cancelled"].includes(selectedOrderStatus);
+
   const updateCartQuantity = (menuItemId, change) => {
     setCart((prev) =>
       prev
@@ -135,12 +143,14 @@ function BillingPage() {
 
   const clearCurrentBill = () => {
     setSelectedOrderId(null);
+    setSelectedOrderStatus(null);
     setSelectedCustomerId("");
     setCustomerSearch("");
     setShowNewCustomerForm(false);
     setNewCustomer({ name: "", phone: "" });
     setDiscountType("percent");
     setDiscountValue(0);
+    setGeneratedBill(null);
     setOrderDetails({
       table_number: "",
       notes: "",
@@ -172,10 +182,17 @@ function BillingPage() {
     return customerId ? Number(customerId) : null;
   };
 
+  const fetchBillByOrderId = async (orderId) => {
+    const billRes = await API.get(`/orders/${orderId}`);
+    setGeneratedBill(billRes.data);
+    return billRes.data;
+  };
+
   const createNewOrder = async (paymentMode) => {
     const customerId = await createCustomerIfNeeded();
-    if (showNewCustomerForm && customerId === null && newCustomer.name.trim()) {
-      return;
+
+    if (showNewCustomerForm && customerId === null) {
+      return null;
     }
 
     const payload = {
@@ -184,9 +201,9 @@ function BillingPage() {
       table_number: orderDetails.table_number
         ? Number(orderDetails.table_number)
         : null,
-      status: paymentMode === "unpaid" ? ORDER_STATUS.served : ORDER_STATUS.pending,
+      status: ORDER_STATUS.pending,
       payment_method:
-        paymentMode === "unpaid" ? "cash" : orderDetails.payment_method,
+        paymentMode === "unpaid" ? "na" : orderDetails.payment_method,
       payment_status:
         paymentMode === "unpaid"
           ? PAYMENT_STATUS.unpaid
@@ -198,13 +215,15 @@ function BillingPage() {
       }))
     };
 
-    await API.post("/orders", payload);
+    const res = await API.post("/orders", payload);
+    return res.data;
   };
 
-  const updateExistingOrder = async (paymentMode) => {
+  const updateExistingOrder = async (paymentMode, method = null) => {
     const customerId = await createCustomerIfNeeded();
-    if (showNewCustomerForm && customerId === null && newCustomer.name.trim()) {
-      return;
+
+    if (showNewCustomerForm && customerId === null) {
+      return null;
     }
 
     const updatePayload = {
@@ -217,15 +236,26 @@ function BillingPage() {
 
     if (paymentMode === "paid") {
       updatePayload.payment_status = PAYMENT_STATUS.paid;
-      updatePayload.payment_method = orderDetails.payment_method;
+      updatePayload.payment_method = method || orderDetails.payment_method;
     }
 
-    await API.put(`/orders/${selectedOrderId}`, updatePayload);
+    if (paymentMode === "unpaid") {
+      updatePayload.payment_status = PAYMENT_STATUS.unpaid;
+      updatePayload.payment_method = "na";
+    }
+
+    const res = await API.put(`/orders/${selectedOrderId}`, updatePayload);
+    return res.data;
   };
 
   const handleSaveUnpaid = async () => {
     if (cart.length === 0) {
       alert("Cart is empty!");
+      return;
+    }
+
+    if (disableSaveUnpaidForSelectedOrder) {
+      alert("This order can no longer be saved as unpaid.");
       return;
     }
 
@@ -258,27 +288,20 @@ function BillingPage() {
 
     try {
       setIsSubmitting(true);
-      setOrderDetails((prev) => ({ ...prev, payment_method: method }));
+
+      let orderIdToFetch = null;
 
       if (selectedOrderId) {
-        await API.put(`/orders/${selectedOrderId}`, {
-          customer_id: selectedCustomerId ? Number(selectedCustomerId) : null,
-          table_number: orderDetails.table_number
-            ? Number(orderDetails.table_number)
-            : null,
-          notes: orderDetails.notes,
-          payment_status: PAYMENT_STATUS.paid,
-          payment_method: method
-        });
+        await updateExistingOrder("paid", method);
+        orderIdToFetch = selectedOrderId;
       } else {
-        const customerId = await createCustomerIfNeeded();
-        if (showNewCustomerForm && customerId === null && newCustomer.name.trim()) {
-          return;
-        }
+        const previousPaymentMethod = orderDetails.payment_method;
 
-        const payload = {
+        setOrderDetails((prev) => ({ ...prev, payment_method: method }));
+
+        const createdOrder = await API.post("/orders", {
           restaurant_id: cart[0]?.restaurant_id || 1,
-          customer_id: customerId,
+          customer_id: await createCustomerIfNeeded(),
           table_number: orderDetails.table_number
             ? Number(orderDetails.table_number)
             : null,
@@ -290,16 +313,39 @@ function BillingPage() {
             menu_item_id: item.menu_item_id,
             quantity: item.quantity
           }))
-        };
+        });
 
-        await API.post("/orders", payload);
+        orderIdToFetch = createdOrder.data.order_id;
+
+        setOrderDetails((prev) => ({
+          ...prev,
+          payment_method: previousPaymentMethod || "cash"
+        }));
+      }
+
+      if (orderIdToFetch) {
+        await fetchBillByOrderId(orderIdToFetch);
       }
 
       setShowPaymentModal(false);
       await fetchPendingOrders();
       alert(`Payment collected successfully via ${method.toUpperCase()}.`);
-      clearCurrentBill();
-      navigate("/");
+
+      setSelectedOrderId(null);
+      setSelectedOrderStatus(null);
+      setSelectedCustomerId("");
+      setCustomerSearch("");
+      setShowNewCustomerForm(false);
+      setNewCustomer({ name: "", phone: "" });
+      setDiscountType("percent");
+      setDiscountValue(0);
+      setOrderDetails({
+        table_number: "",
+        notes: "",
+        payment_method: "cash"
+      });
+      setCart([]);
+      localStorage.removeItem("cart");
     } catch (err) {
       console.error(err.response?.data || err);
       alert(err.response?.data?.detail || "❌ Failed to collect payment");
@@ -309,7 +355,9 @@ function BillingPage() {
   };
 
   const handleSelectPendingOrder = (o) => {
+    setGeneratedBill(null);
     setSelectedOrderId(Number(o.order.order_id));
+    setSelectedOrderStatus(o.order.status || null);
 
     const formattedCart = o.items.map((i) => ({
       menu_item_id: i.menu_item_id,
@@ -326,8 +374,16 @@ function BillingPage() {
     setOrderDetails({
       table_number: o.order.table_number || "",
       notes: o.order.notes || "",
-      payment_method: o.order.payment_method || "cash"
+      payment_method:
+        o.order.payment_method && o.order.payment_method !== "na"
+          ? o.order.payment_method
+          : "cash"
     });
+  };
+
+  const closeGeneratedBill = () => {
+    setGeneratedBill(null);
+    navigate("/");
   };
 
   const modeLabel = selectedOrderId
@@ -631,10 +687,19 @@ function BillingPage() {
         >
           <button
             onClick={handleSaveUnpaid}
-            disabled={isSubmitting || cart.length === 0}
+            disabled={
+              isSubmitting || cart.length === 0 || disableSaveUnpaidForSelectedOrder
+            }
             style={{
               ...actionButtonStyle,
-              background: "#f39c12"
+              background:
+                isSubmitting || cart.length === 0 || disableSaveUnpaidForSelectedOrder
+                  ? "#bdc3c7"
+                  : "#f39c12",
+              cursor:
+                isSubmitting || cart.length === 0 || disableSaveUnpaidForSelectedOrder
+                  ? "not-allowed"
+                  : "pointer"
             }}
           >
             Save Unpaid
@@ -651,6 +716,18 @@ function BillingPage() {
             Collect Payment
           </button>
         </div>
+
+        {disableSaveUnpaidForSelectedOrder && (
+          <p
+            style={{
+              marginTop: "10px",
+              color: "#c0392b",
+              fontSize: "13px"
+            }}
+          >
+            This order is already in a final/served stage and cannot be saved as unpaid.
+          </p>
+        )}
 
         <button
           onClick={clearCurrentBill}
@@ -713,6 +790,179 @@ function BillingPage() {
           </div>
         </Modal>
       )}
+
+      {generatedBill && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0, 0, 0, 0.35)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1200,
+            padding: "20px"
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "460px",
+              background: "#fff",
+              borderRadius: "14px",
+              padding: "20px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+              maxHeight: "90vh",
+              overflowY: "auto"
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "14px"
+              }}
+            >
+              <h3 style={{ margin: 0 }}>🧾 Generated Bill</h3>
+              <button
+                onClick={closeGeneratedBill}
+                style={{
+                  border: "none",
+                  background: "#f1f1f1",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: "#fafafa",
+                border: "1px solid #eee",
+                borderRadius: "12px",
+                padding: "14px",
+                marginBottom: "14px"
+              }}
+            >
+              <BillRow label="Order ID" value={`#${generatedBill.order.order_id}`} />
+              <BillRow
+                label="Date"
+                value={new Date(generatedBill.order.created_at).toLocaleString()}
+              />
+              <BillRow
+                label="Customer"
+                value={generatedBill.order.customer_name || "Walk-in"}
+              />
+              <BillRow
+                label="Table"
+                value={generatedBill.order.table_number || "-"}
+              />
+              <BillRow
+                label="Payment"
+                value={generatedBill.order.payment_method?.toUpperCase() || "-"}
+              />
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #eee",
+                borderRadius: "12px",
+                overflow: "hidden",
+                marginBottom: "14px"
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.6fr 0.6fr 0.8fr",
+                  gap: "10px",
+                  padding: "12px 14px",
+                  background: "#f8f9fb",
+                  fontWeight: "700",
+                  borderBottom: "1px solid #eee"
+                }}
+              >
+                <div>Item</div>
+                <div style={{ textAlign: "center" }}>Qty</div>
+                <div style={{ textAlign: "right" }}>Amount</div>
+              </div>
+
+              {generatedBill.items.map((item) => (
+                <div
+                  key={item.order_item_id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.6fr 0.6fr 0.8fr",
+                    gap: "10px",
+                    padding: "12px 14px",
+                    borderBottom: "1px solid #f3f3f3"
+                  }}
+                >
+                  <div>{item.item_name}</div>
+                  <div style={{ textAlign: "center" }}>{item.quantity}</div>
+                  <div style={{ textAlign: "right" }}>
+                    ₹{(item.quantity * item.price_at_order).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                background: "#f9fbff",
+                border: "1px solid #e6eefb",
+                borderRadius: "12px",
+                padding: "14px"
+              }}
+            >
+              <BillRow
+                label="Total Amount"
+                value={`₹${Number(generatedBill.order.total_amount || 0).toFixed(2)}`}
+                bold
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+              <button
+                onClick={() => window.print()}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  border: "none",
+                  background: "#2c3e50",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                Print Bill
+              </button>
+
+              <button
+                onClick={closeGeneratedBill}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  border: "none",
+                  background: "#27ae60",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold"
+                }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -725,11 +975,12 @@ function BillRow({ label, value, bold = false }) {
         justifyContent: "space-between",
         marginBottom: "8px",
         fontWeight: bold ? "bold" : "normal",
-        fontSize: bold ? "18px" : "14px"
+        fontSize: bold ? "18px" : "14px",
+        gap: "12px"
       }}
     >
       <span>{label}</span>
-      <span>{value}</span>
+      <span style={{ textAlign: "right" }}>{value}</span>
     </div>
   );
 }
