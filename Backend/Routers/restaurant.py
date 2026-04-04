@@ -1,17 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 import models, schemas
 from database import get_db
-from schemas import OrderStatus
-from datetime import datetime, timedelta
 from services.analytics_service import get_sales_analytics
 
-router = APIRouter(prefix= "/restaurants", tags = ["Restaurants"])
+router = APIRouter(prefix="/restaurants", tags=["Restaurants"])
 
 
-@router.post("", response_model= schemas.RestaurantResponse)
-def create_restaurant(restaurant : schemas.RestaurantCreate, db : Session = Depends(get_db)):
+@router.post("", response_model=schemas.RestaurantResponse)
+def create_restaurant(
+    restaurant: schemas.RestaurantCreate,
+    db: Session = Depends(get_db)
+):
+    if restaurant.tax_rate is not None and restaurant.tax_rate < 0:
+        raise HTTPException(status_code=400, detail="Tax rate cannot be negative")
+
     new_restaurant = models.Restaurant(**restaurant.dict())
 
     db.add(new_restaurant)
@@ -20,8 +23,13 @@ def create_restaurant(restaurant : schemas.RestaurantCreate, db : Session = Depe
 
     return new_restaurant
 
-@router.put("/{restaurant_id}", response_model= schemas.RestaurantResponse)
-def update_restaurant(restaurant_id : int, restaurant : schemas.RestaurantUpdate, db : Session = Depends(get_db)):
+
+@router.put("/{restaurant_id}", response_model=schemas.RestaurantResponse)
+def update_restaurant(
+    restaurant_id: int,
+    restaurant: schemas.RestaurantUpdate,
+    db: Session = Depends(get_db)
+):
     db_restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == restaurant_id
     ).first()
@@ -31,6 +39,10 @@ def update_restaurant(restaurant_id : int, restaurant : schemas.RestaurantUpdate
 
     updated_data = restaurant.dict(exclude_unset=True)
 
+    if "tax_rate" in updated_data and updated_data["tax_rate"] is not None:
+        if updated_data["tax_rate"] < 0:
+            raise HTTPException(status_code=400, detail="Tax rate cannot be negative")
+
     for key, value in updated_data.items():
         setattr(db_restaurant, key, value)
 
@@ -39,23 +51,26 @@ def update_restaurant(restaurant_id : int, restaurant : schemas.RestaurantUpdate
 
     return db_restaurant
 
+
 @router.get("", response_model=list[schemas.RestaurantResponse])
 def get_all_restaurants(db: Session = Depends(get_db)):
     restaurants = db.query(models.Restaurant).all()
     return restaurants
 
-@router.get("/{restaurant_id}", response_model= schemas.RestaurantResponse)
-def get_restaurant(restaurant_id : int, db : Session = Depends(get_db)):
+
+@router.get("/{restaurant_id}", response_model=schemas.RestaurantResponse)
+def get_restaurant(restaurant_id: int, db: Session = Depends(get_db)):
     restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == restaurant_id
     ).first()
 
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
-    
+
     return restaurant
 
-@router.get("/{restaurant_id}/menu", response_model= list[schemas.MenuItemResponse])
+
+@router.get("/{restaurant_id}/menu", response_model=list[schemas.MenuItemResponse])
 def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
     restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == restaurant_id
@@ -71,14 +86,19 @@ def get_restaurant_menu(restaurant_id: int, db: Session = Depends(get_db)):
 
     return menu
 
-@router.get("/{restaurant_id}/menu/{category_id}", response_model= list[schemas.MenuItemResponse])
-def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Session = Depends(get_db)):
+
+@router.get("/{restaurant_id}/menu/{category_id}", response_model=list[schemas.MenuItemResponse])
+def restaurant_menu_by_category(
+    restaurant_id: int,
+    category_id: int,
+    db: Session = Depends(get_db)
+):
     restaurant = db.query(models.Restaurant).filter(
         models.Restaurant.restaurant_id == restaurant_id
     ).first()
 
     if not restaurant:
-        raise HTTPException(status_code= 404, detail= "Restaurant not Found")
+        raise HTTPException(status_code=404, detail="Restaurant not found")
 
     menu_category = db.query(models.MenuItem).filter(
         models.MenuItem.restaurant_id == restaurant_id,
@@ -87,6 +107,7 @@ def restaurant_menu_by_category(restaurant_id : int, category_id : int, db : Ses
     ).all()
 
     return menu_category
+
 
 @router.get("/{restaurant_id}/sales", response_model=schemas.SalesAnalyticsResponse)
 def get_sales(
@@ -98,8 +119,16 @@ def get_sales(
 ):
     return get_sales_analytics(db, restaurant_id, range, start_date, end_date)
 
-@router.get("/{restaurant_id}/categories")
+
+@router.get("/{restaurant_id}/categories", response_model=list[schemas.CategoryResponse])
 def get_categories(restaurant_id: int, db: Session = Depends(get_db)):
+    restaurant = db.query(models.Restaurant).filter(
+        models.Restaurant.restaurant_id == restaurant_id
+    ).first()
+
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Restaurant not found")
+
     return db.query(models.Category).filter(
         models.Category.restaurant_id == restaurant_id
     ).all()

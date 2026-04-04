@@ -7,7 +7,19 @@ function RestaurantPage() {
     const [restaurantForm, setRestaurantForm] = useState({
         restaurant_name: "",
         restaurant_phone: "",
-        restaurant_email: ""
+        restaurant_email: "",
+        address: "",
+        tax_rate: ""
+    });
+
+    const [showCreateRestaurant, setShowCreateRestaurant] = useState(false);
+    const [creatingRestaurant, setCreatingRestaurant] = useState(false);
+    const [newRestaurantForm, setNewRestaurantForm] = useState({
+        restaurant_name: "",
+        restaurant_phone: "",
+        restaurant_email: "",
+        address: "",
+        tax_rate: ""
     });
 
     const [categories, setCategories] = useState([]);
@@ -101,7 +113,13 @@ function RestaurantPage() {
             setRestaurantForm({
                 restaurant_name: restaurantRes.data.restaurant_name || "",
                 restaurant_phone: restaurantRes.data.restaurant_phone || "",
-                restaurant_email: restaurantRes.data.restaurant_email || ""
+                restaurant_email: restaurantRes.data.restaurant_email || "",
+                address: restaurantRes.data.address || "",
+                tax_rate:
+                    restaurantRes.data.tax_rate === null ||
+                    restaurantRes.data.tax_rate === undefined
+                        ? ""
+                        : restaurantRes.data.tax_rate
             });
 
             setCategories(categoriesRes.data || []);
@@ -146,6 +164,19 @@ function RestaurantPage() {
     const handleRestaurantSave = async () => {
         if (!selectedRestaurantId) return;
 
+        if (!restaurantForm.restaurant_name.trim()) {
+            setError("Restaurant name is required");
+            return;
+        }
+
+        if (
+            restaurantForm.tax_rate !== "" &&
+            Number(restaurantForm.tax_rate) < 0
+        ) {
+            setError("Tax rate cannot be negative");
+            return;
+        }
+
         try {
             setSavingRestaurant(true);
             setError("");
@@ -153,17 +184,80 @@ function RestaurantPage() {
             await API.put(`/restaurants/${selectedRestaurantId}`, {
                 restaurant_name: restaurantForm.restaurant_name,
                 restaurant_phone: restaurantForm.restaurant_phone || null,
-                restaurant_email: restaurantForm.restaurant_email || null
+                restaurant_email: restaurantForm.restaurant_email || null,
+                address: restaurantForm.address || null,
+                tax_rate:
+                    restaurantForm.tax_rate === ""
+                        ? null
+                        : Number(restaurantForm.tax_rate)
             });
 
             showSuccess("Restaurant info updated");
-            fetchRestaurants();
-            fetchRestaurantData(selectedRestaurantId);
+            await fetchRestaurants();
+            await fetchRestaurantData(selectedRestaurantId);
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.detail || "Failed to update restaurant");
         } finally {
             setSavingRestaurant(false);
+        }
+    };
+
+    const handleCreateRestaurant = async () => {
+        if (!newRestaurantForm.restaurant_name.trim()) {
+            setError("Restaurant name is required");
+            return;
+        }
+
+        if (
+            newRestaurantForm.tax_rate !== "" &&
+            Number(newRestaurantForm.tax_rate) < 0
+        ) {
+            setError("Tax rate cannot be negative");
+            return;
+        }
+
+        try {
+            setCreatingRestaurant(true);
+            setError("");
+
+            const res = await API.post("/restaurants", {
+                restaurant_name: newRestaurantForm.restaurant_name,
+                restaurant_phone: newRestaurantForm.restaurant_phone || null,
+                restaurant_email: newRestaurantForm.restaurant_email || null,
+                address: newRestaurantForm.address || null,
+                tax_rate:
+                    newRestaurantForm.tax_rate === ""
+                        ? 0
+                        : Number(newRestaurantForm.tax_rate)
+            });
+
+            const createdRestaurantId = res.data.restaurant_id;
+
+            showSuccess("Restaurant created successfully");
+
+            setNewRestaurantForm({
+                restaurant_name: "",
+                restaurant_phone: "",
+                restaurant_email: "",
+                address: "",
+                tax_rate: ""
+            });
+
+            setShowCreateRestaurant(false);
+
+            await fetchRestaurants();
+
+            if (createdRestaurantId) {
+                setSelectedRestaurantId(createdRestaurantId);
+                localStorage.setItem("restaurantId", createdRestaurantId);
+                await fetchRestaurantData(createdRestaurantId);
+            }
+        } catch (err) {
+            console.error(err);
+            setError(err.response?.data?.detail || "Failed to create restaurant");
+        } finally {
+            setCreatingRestaurant(false);
         }
     };
 
@@ -316,7 +410,6 @@ function RestaurantPage() {
     const toggleItemActive = async (item) => {
         const nextActive = !item.is_active;
 
-        // optimistic UI update
         setMenuItems((prev) =>
             prev.map((menuItem) =>
                 menuItem.menu_item_id === item.menu_item_id
@@ -334,7 +427,6 @@ function RestaurantPage() {
         } catch (err) {
             console.error(err);
 
-            // rollback if API fails
             setMenuItems((prev) =>
                 prev.map((menuItem) =>
                     menuItem.menu_item_id === item.menu_item_id
@@ -425,6 +517,93 @@ function RestaurantPage() {
                         </select>
                     )}
                 </div>
+
+                <div style={{ marginTop: "14px" }}>
+                    <button
+                        onClick={() => setShowCreateRestaurant((prev) => !prev)}
+                        style={blueButtonStyle}
+                    >
+                        {showCreateRestaurant ? "Close New Restaurant Form" : "➕ Create New Restaurant"}
+                    </button>
+                </div>
+
+                {showCreateRestaurant && (
+                    <div style={{ ...subCardStyle, marginTop: "16px" }}>
+                        <h2 style={sectionTitleStyle}>➕ Create New Restaurant</h2>
+
+                        <input
+                            type="text"
+                            placeholder="Restaurant Name"
+                            value={newRestaurantForm.restaurant_name}
+                            onChange={(e) =>
+                                setNewRestaurantForm((prev) => ({
+                                    ...prev,
+                                    restaurant_name: e.target.value
+                                }))
+                            }
+                            style={inputStyle}
+                        />
+
+                        <input
+                            type="text"
+                            placeholder="Phone"
+                            value={newRestaurantForm.restaurant_phone}
+                            onChange={(e) =>
+                                setNewRestaurantForm((prev) => ({
+                                    ...prev,
+                                    restaurant_phone: e.target.value
+                                }))
+                            }
+                            style={inputStyle}
+                        />
+
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            value={newRestaurantForm.restaurant_email}
+                            onChange={(e) =>
+                                setNewRestaurantForm((prev) => ({
+                                    ...prev,
+                                    restaurant_email: e.target.value
+                                }))
+                            }
+                            style={inputStyle}
+                        />
+
+                        <textarea
+                            placeholder="Address"
+                            value={newRestaurantForm.address}
+                            onChange={(e) =>
+                                setNewRestaurantForm((prev) => ({
+                                    ...prev,
+                                    address: e.target.value
+                                }))
+                            }
+                            style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
+                        />
+
+                        <input
+                            type="number"
+                            placeholder="Tax Rate %"
+                            value={newRestaurantForm.tax_rate}
+                            onChange={(e) =>
+                                setNewRestaurantForm((prev) => ({
+                                    ...prev,
+                                    tax_rate: e.target.value
+                                }))
+                            }
+                            style={inputStyle}
+                        />
+
+                        <button
+                            onClick={handleCreateRestaurant}
+                            disabled={creatingRestaurant}
+                            style={primaryButtonStyle}
+                        >
+                            {creatingRestaurant ? "Creating..." : "Create Restaurant"}
+                        </button>
+                    </div>
+                )}
             </div>
 
             {message && <div style={successStyle}>{message}</div>}
@@ -478,6 +657,35 @@ function RestaurantPage() {
                                 }
                                 style={inputStyle}
                             />
+
+                            <textarea
+                                placeholder="Address"
+                                value={restaurantForm.address}
+                                onChange={(e) =>
+                                    setRestaurantForm((prev) => ({
+                                        ...prev,
+                                        address: e.target.value
+                                    }))
+                                }
+                                style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
+                            />
+
+                            <input
+                                type="number"
+                                placeholder="Tax Rate %"
+                                value={restaurantForm.tax_rate}
+                                onChange={(e) =>
+                                    setRestaurantForm((prev) => ({
+                                        ...prev,
+                                        tax_rate: e.target.value
+                                    }))
+                                }
+                                style={inputStyle}
+                            />
+
+                            <p style={{ marginTop: "8px", color: "#666", fontSize: "13px" }}>
+                                This tax rate will be used for billing for this restaurant.
+                            </p>
 
                             <button
                                 onClick={handleRestaurantSave}
@@ -972,6 +1180,16 @@ const primaryButtonStyle = {
     border: "none",
     borderRadius: "10px",
     background: "#2ecc71",
+    color: "#fff",
+    fontWeight: "bold",
+    cursor: "pointer"
+};
+
+const blueButtonStyle = {
+    padding: "10px 14px",
+    border: "none",
+    borderRadius: "10px",
+    background: "#3498db",
     color: "#fff",
     fontWeight: "bold",
     cursor: "pointer"

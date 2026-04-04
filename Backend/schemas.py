@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from enum import Enum
@@ -8,6 +8,8 @@ class RestaurantCreate(BaseModel):
     restaurant_name: str
     restaurant_phone: Optional[str] = None
     restaurant_email: Optional[str] = None
+    restaurant_address : Optional[str] = None
+    tax_rate : Optional[float] = 0
     password: Optional[str] = None
 
 
@@ -16,12 +18,20 @@ class RestaurantResponse(BaseModel):
     restaurant_name: str
     restaurant_phone: Optional[str] = None
     restaurant_email: Optional[str] = None
+    restaurant_address : Optional[str] = None
+    tax_rate : float
     created_at: datetime
     updated_at: datetime
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+class RestaurantUpdate(BaseModel):
+    restaurant_name: Optional[str] = None
+    restaurant_phone: Optional[str] = None
+    restaurant_email: Optional[str] = None
+    address: Optional[str] = None
+    tax_rate: Optional[float] = None
 
 
 class CategoryCreate(BaseModel):
@@ -38,8 +48,7 @@ class CategoryResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MenuItemCreate(BaseModel):
@@ -63,8 +72,7 @@ class MenuItemResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CustomerCreate(BaseModel):
@@ -80,8 +88,7 @@ class CustomerResponse(BaseModel):
     customer_phone: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderStatus(str, Enum):
@@ -135,8 +142,7 @@ class OrderResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderUpdate(BaseModel):
@@ -148,8 +154,7 @@ class OrderUpdate(BaseModel):
     table_number: Optional[int] = None
     notes: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class OrderItemCreate(BaseModel):
     order_id: int
@@ -169,16 +174,14 @@ class OrderItemResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class OrderDetailResponse(BaseModel):
     order: OrderResponse
     items: list[OrderItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SalesResponse(BaseModel):

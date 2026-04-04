@@ -18,14 +18,14 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Restaurant not found")
 
     new_order = models.Order(
-        restaurant_id = order.restaurant_id,
-        customer_id = order.customer_id,
-        table_number = order.table_number,
-        status = order.status,
-        payment_status = order.payment_status,
-        payment_method = order.payment_method,
-        notes = order.notes,
-        total_amount = 0
+        restaurant_id=order.restaurant_id,
+        customer_id=order.customer_id,
+        table_number=order.table_number,
+        status=order.status,
+        payment_status=order.payment_status,
+        payment_method=order.payment_method,
+        notes=order.notes,
+        total_amount=0
     )
 
     try:
@@ -33,31 +33,30 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         db.flush()
 
         total_amount = 0
+
         for item in order.items:
             menu_item = db.query(models.MenuItem).filter(
                 models.MenuItem.menu_item_id == item.menu_item_id
             ).first()
 
             if not menu_item:
-                raise HTTPException(status_code=404, detail="Menu Item not found")
-            
+                raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
+
+            if menu_item.restaurant_id != order.restaurant_id:
+                raise HTTPException(status_code=400, detail=f"{menu_item.item_name} does not belong to this restaurant")
+
             if not menu_item.is_active:
-                raise HTTPException(status_code=400, detail="Menu Item is not Available")
-            
-            if menu_item.stock < item.quantity:
-                raise HTTPException(status_code=400, detail= f"Not enough stock for {menu_item.item_name}")
-            
-            menu_item.stock -= item.quantity
-            
+                raise HTTPException(status_code=400, detail=f"{menu_item.item_name} is not available")
+
             item_total = menu_item.item_price * item.quantity
             total_amount += item_total
 
             new_order_item = models.OrderItem(
-                order_id = new_order.order_id,
-                menu_item_id = item.menu_item_id,
-                item_name = menu_item.item_name,
-                quantity = item.quantity,
-                price_at_order = menu_item.item_price
+                order_id=new_order.order_id,
+                menu_item_id=item.menu_item_id,
+                item_name=menu_item.item_name,
+                quantity=item.quantity,
+                price_at_order=menu_item.item_price
             )
 
             db.add(new_order_item)
@@ -70,17 +69,22 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
             models.OrderItem.order_id == new_order.order_id
         ).all()
 
-        order_response = schemas.OrderResponse.from_orm(new_order)
+        order_response = schemas.OrderResponse.model_validate(new_order)
         order_response.customer_name = new_order.customer.customer_name if new_order.customer else None
 
         return schemas.OrderDetailResponse(
             order=order_response,
             items=order_items
         )
-    
+
+    except HTTPException:
+        db.rollback()
+        raise
+
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Order creation failed")
+        print("ORDER CREATION ERROR:", str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("", response_model=list[schemas.OrderResponse])

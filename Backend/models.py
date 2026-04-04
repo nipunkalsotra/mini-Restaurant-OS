@@ -12,6 +12,8 @@ class Restaurant(Base):
     restaurant_name = Column(Text, nullable= False)
     restaurant_phone = Column(Text)
     restaurant_email = Column(Text, unique= True)
+    restaurant_address = Column(Text)
+    tax_rate = Column(Float, default = 0, nullable = False)
     password = Column(Text)
     created_at = Column(DateTime, default= datetime.utcnow, nullable= False)
     is_active = Column(Boolean, default= True)
@@ -24,6 +26,7 @@ class Restaurant(Base):
 
     __table_args__ = (
         CheckConstraint("length(restaurant_phone) BETWEEN 10 AND 15", name = "rs_ph_ch"),
+        CheckConstraint("tax_rate >= 0", name = "tax_rate_non_negative"),
     )
 
 class Category(Base):
