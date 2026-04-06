@@ -30,7 +30,7 @@ class RestaurantUpdate(BaseModel):
     restaurant_name: Optional[str] = None
     restaurant_phone: Optional[str] = None
     restaurant_email: Optional[str] = None
-    address: Optional[str] = None
+    restaurant_address: Optional[str] = None
     tax_rate: Optional[float] = None
 
 
@@ -121,9 +121,9 @@ class OrderCreate(BaseModel):
     restaurant_id: int
     customer_id: Optional[int] = None
     table_number: Optional[int] = None
-    status: OrderStatus
-    payment_status: PaymentStatus
-    payment_method: PaymentMethod
+    status: Optional[OrderStatus] = OrderStatus.pending
+    payment_status: Optional[PaymentStatus] = PaymentStatus.unpaid
+    payment_method: Optional[PaymentMethod] = PaymentMethod.na
     notes: Optional[str] = None
     items: List[OrderItemCreateForOrder]
 
@@ -286,12 +286,6 @@ class SalesAnalyticsResponse(BaseModel):
     anomaly_flags: list[AnomalyFlag]
     top_insight: TopInsight
     insight_text: list[str]
-
-class RestaurantUpdate(BaseModel):
-    restaurant_name: Optional[str] = None
-    restaurant_phone: Optional[str] = None
-    restaurant_email: Optional[str] = None
-
 
 class MenuItemUpdate(BaseModel):
     category_id: Optional[int] = None
