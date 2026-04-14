@@ -1,67 +1,139 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../api/api";
 import Cart from "../components/Cart";
 
-function MenuPage() {
+function MenuPage({ cart, setCart }) {
   const navigate = useNavigate();
+
   const [restaurants, setRestaurants] = useState([]);
   const [menu, setMenu] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [loadingMenu, setLoadingMenu] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState(() =>
-    localStorage.getItem("restaurantId")
-      ? Number(localStorage.getItem("restaurantId"))
-      : null
-  );
-
-  const [cart, setCart] = useState([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState(() => {
+    const saved = localStorage.getItem("restaurantId");
+    return saved ? Number(saved) : null;
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem("cart");
-    if (saved) {
-      setCart(JSON.parse(saved));
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart && cart.length === 0) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (e) {
+        console.error("Failed to parse saved cart:", e);
+        localStorage.removeItem("cart");
+      }
     }
-  }, []);
-
-  useEffect(() => {
-    API.get("/restaurants")
-      .then((res) => setRestaurants(res.data))
-      .catch(() => setError("Failed to load restaurants"))
-      .finally(() => setLoadingRestaurants(false));
-  }, []);
-
-  useEffect(() => {
-    if (!selectedRestaurantId) return;
-    API.get(`/restaurants/${selectedRestaurantId}/categories`)
-      .then((res) => setCategories(res.data))
-      .catch(() => console.error("Failed to load categories"));
-  }, [selectedRestaurantId]);
-
-  useEffect(() => {
-    if (!selectedRestaurantId) return;
-    setLoadingMenu(true);
-    API.get(`/restaurants/${selectedRestaurantId}/menu`)
-      .then((res) => setMenu(res.data))
-      .catch(() => setError("Failed to load menu"))
-      .finally(() => setLoadingMenu(false));
-  }, [selectedRestaurantId]);
-
-  useEffect(() => {
-    setSelectedCategory("all");
-  }, [selectedRestaurantId]);
+  }, [cart.length, setCart]);
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
 
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoadingRestaurants(true);
+        setError("");
+
+        const res = await API.get("/restaurants");
+        const restaurantList = res.data || [];
+        setRestaurants(restaurantList);
+
+        if (restaurantList.length === 0) {
+          setSelectedRestaurantId(null);
+          localStorage.removeItem("restaurantId");
+          setCategories([]);
+          setMenu([]);
+          return;
+        }
+
+        const savedRestaurantId = localStorage.getItem("restaurantId");
+        const validSavedRestaurant = restaurantList.find(
+          (r) => Number(r.restaurant_id) === Number(savedRestaurantId)
+        );
+
+        const nextRestaurantId = validSavedRestaurant
+          ? validSavedRestaurant.restaurant_id
+          : restaurantList[0].restaurant_id;
+
+        setSelectedRestaurantId(nextRestaurantId);
+        localStorage.setItem("restaurantId", String(nextRestaurantId));
+      } catch (err) {
+        console.error(err);
+        setError(
+          err.response?.data?.detail || "Failed to load restaurants"
+        );
+      } finally {
+        setLoadingRestaurants(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, []);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!selectedRestaurantId) {
+        setCategories([]);
+        return;
+      }
+
+      try {
+        const res = await API.get(`/restaurants/${selectedRestaurantId}/categories`);
+        setCategories(res.data || []);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+        setCategories([]);
+      }
+    };
+
+    fetchCategories();
+  }, [selectedRestaurantId]);
+
+  useEffect(() => {
+    const fetchMenu = async () => {
+      if (!selectedRestaurantId) {
+        setMenu([]);
+        return;
+      }
+
+      try {
+        setLoadingMenu(true);
+        setError("");
+
+        const res = await API.get(`/restaurants/${selectedRestaurantId}/menu`);
+        setMenu(res.data || []);
+      } catch (err) {
+        console.error(err);
+        setMenu([]);
+        setError(
+          err.response?.data?.detail || "Failed to load menu"
+        );
+      } finally {
+        setLoadingMenu(false);
+      }
+    };
+
+    fetchMenu();
+  }, [selectedRestaurantId]);
+
+  useEffect(() => {
+    setSelectedCategory("all");
+    setSearchTerm("");
+  }, [selectedRestaurantId]);
+
   const addToCart = (item) => {
     setCart((prev) => {
-      const existing = prev.find((i) => i.menu_item_id === item.menu_item_id);
+      const existing = prev.find(
+        (i) => i.menu_item_id === item.menu_item_id
+      );
+
       if (existing) {
         return prev.map((i) =>
           i.menu_item_id === item.menu_item_id
@@ -69,39 +141,56 @@ function MenuPage() {
             : i
         );
       }
+
       return [...prev, { ...item, quantity: 1 }];
     });
   };
 
   const handleCheckout = () => {
+    if (!selectedRestaurantId) {
+      alert("Please select a restaurant first.");
+      return;
+    }
+
     if (cart.length === 0) {
       alert("Cart is empty!");
       return;
     }
-    navigate("/billing", { state: { cart } });
+
+    navigate("/billing", {
+      state: {
+        cart,
+        restaurantId: selectedRestaurantId,
+      },
+    });
   };
 
-  const filteredMenu = menu.filter((item) => {
-    const matchesSearch = item.item_name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || item.category_id === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredMenu = useMemo(() => {
+    return menu.filter((item) => {
+      const matchesSearch = item.item_name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        Number(item.category_id) === Number(selectedCategory);
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [menu, searchTerm, selectedCategory]);
 
   return (
     <div
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#f7f8fa"
+        background: "#f7f8fa",
       }}
     >
       <div
         style={{
           flex: 1,
-          padding: "24px 24px 24px 28px"
+          padding: "24px 24px 24px 28px",
         }}
       >
         <div
@@ -110,7 +199,7 @@ function MenuPage() {
             borderRadius: "18px",
             padding: "22px",
             boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-            marginBottom: "20px"
+            marginBottom: "20px",
           }}
         >
           <div
@@ -119,7 +208,7 @@ function MenuPage() {
               justifyContent: "space-between",
               alignItems: "center",
               gap: "16px",
-              flexWrap: "wrap"
+              flexWrap: "wrap",
             }}
           >
             <div>
@@ -135,7 +224,7 @@ function MenuPage() {
                 padding: "12px 16px",
                 borderRadius: "14px",
                 border: "1px solid #e8eefc",
-                minWidth: "220px"
+                minWidth: "220px",
               }}
             >
               <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
@@ -155,15 +244,19 @@ function MenuPage() {
                 display: "grid",
                 gridTemplateColumns: "minmax(240px, 320px) 1fr",
                 gap: "14px",
-                marginTop: "18px"
+                marginTop: "18px",
               }}
             >
               <select
                 value={selectedRestaurantId || ""}
                 onChange={(e) => {
                   const id = Number(e.target.value);
-                  setSelectedRestaurantId(id);
-                  localStorage.setItem("restaurantId", id);
+                  setSelectedRestaurantId(id || null);
+                  if (id) {
+                    localStorage.setItem("restaurantId", String(id));
+                  } else {
+                    localStorage.removeItem("restaurantId");
+                  }
                 }}
                 style={selectStyle}
               >
@@ -192,7 +285,7 @@ function MenuPage() {
                 marginTop: "18px",
                 display: "flex",
                 flexWrap: "wrap",
-                gap: "10px"
+                gap: "10px",
               }}
             >
               <button
@@ -207,7 +300,7 @@ function MenuPage() {
                   key={cat.category_id}
                   onClick={() => setSelectedCategory(cat.category_id)}
                   style={getCategoryButtonStyle(
-                    selectedCategory === cat.category_id
+                    Number(selectedCategory) === Number(cat.category_id)
                   )}
                 >
                   {cat.category_name}
@@ -225,7 +318,7 @@ function MenuPage() {
               border: "1px solid #f3c4c4",
               padding: "12px 14px",
               borderRadius: "12px",
-              marginBottom: "16px"
+              marginBottom: "16px",
             }}
           >
             {error}
@@ -243,7 +336,7 @@ function MenuPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-              gap: "20px"
+              gap: "20px",
             }}
           >
             {filteredMenu.map((item) => (
@@ -256,7 +349,7 @@ function MenuPage() {
                   boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
                   display: "flex",
                   flexDirection: "column",
-                  gap: "10px"
+                  gap: "10px",
                 }}
               >
                 <div
@@ -264,7 +357,7 @@ function MenuPage() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "start",
-                    gap: "10px"
+                    gap: "10px",
                   }}
                 >
                   <h3 style={{ margin: 0, fontSize: "20px", color: "#222" }}>
@@ -279,7 +372,7 @@ function MenuPage() {
                       padding: "6px 10px",
                       borderRadius: "999px",
                       fontWeight: 600,
-                      whiteSpace: "nowrap"
+                      whiteSpace: "nowrap",
                     }}
                   >
                     #{item.menu_item_id}
@@ -295,7 +388,7 @@ function MenuPage() {
                     fontSize: "24px",
                     fontWeight: 700,
                     color: "#1f2937",
-                    marginTop: "4px"
+                    marginTop: "4px",
                   }}
                 >
                   ₹{item.item_price}
@@ -313,7 +406,7 @@ function MenuPage() {
                     color: "#fff",
                     cursor: "pointer",
                     fontWeight: "bold",
-                    fontSize: "14px"
+                    fontSize: "14px",
                   }}
                 >
                   ➕ Add to Cart
@@ -335,7 +428,7 @@ const selectStyle = {
   border: "1px solid #d7dce5",
   background: "#fff",
   fontSize: "14px",
-  outline: "none"
+  outline: "none",
 };
 
 const inputStyle = {
@@ -346,7 +439,7 @@ const inputStyle = {
   fontSize: "14px",
   outline: "none",
   width: "100%",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
 };
 
 const stateCardStyle = {
@@ -354,7 +447,7 @@ const stateCardStyle = {
   borderRadius: "18px",
   padding: "22px",
   boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666"
+  color: "#666",
 };
 
 const getCategoryButtonStyle = (active) => ({
@@ -364,7 +457,7 @@ const getCategoryButtonStyle = (active) => ({
   background: active ? "#333" : "#eceff3",
   color: active ? "#fff" : "#222",
   cursor: "pointer",
-  fontWeight: 600
+  fontWeight: 600,
 });
 
 export default MenuPage;

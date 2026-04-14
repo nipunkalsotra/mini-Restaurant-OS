@@ -1,14 +1,27 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 function CustomerDetailPage() {
   const { customerId } = useParams();
   const navigate = useNavigate();
+  const token = localStorage.getItem("restaurant_os_token");
 
   const [orders, setOrders] = useState([]);
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("restaurant_os_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
 
   useEffect(() => {
     const fetchCustomerData = async () => {
@@ -16,8 +29,16 @@ function CustomerDetailPage() {
         setLoading(true);
 
         const [customersRes, ordersRes] = await Promise.all([
-          API.get("/customers"),
-          API.get(`/customers/${customerId}/orders`)
+          API.get("/customers", {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }),
+          API.get(`/customers/${customerId}/orders`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          })
         ]);
 
         const found = customersRes.data.find(
@@ -28,13 +49,20 @@ function CustomerDetailPage() {
         setOrders(ordersRes.data || []);
       } catch (err) {
         console.error(err);
+
+        if (err.response?.status === 401) {
+          logoutAndRedirect();
+          return;
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCustomerData();
-  }, [customerId]);
+    if (token) {
+      fetchCustomerData();
+    }
+  }, [customerId, token, logoutAndRedirect]);
 
   const totalSpent = useMemo(
     () => orders.reduce((sum, o) => sum + (o.total_amount || 0), 0),

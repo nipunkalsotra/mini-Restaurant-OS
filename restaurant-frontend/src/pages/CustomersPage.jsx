@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import API from "../api/api";
 import { useNavigate } from "react-router-dom";
 import DataFilter from "../components/DataFilter";
@@ -17,38 +17,82 @@ function CustomersPage() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const token = localStorage.getItem("restaurant_os_token");
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("restaurant_os_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
 
-        const params = {};
-
-        if (dateFilter.startDate && dateFilter.endDate) {
-          params.start_date = dateFilter.startDate;
-          params.end_date = dateFilter.endDate;
-        } else if (dateFilter.range && dateFilter.range !== "all") {
-          params.range = dateFilter.range;
-        }
-
-        const res = await API.get("/customers", { params });
-        setCustomers(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const fetchCustomers = useCallback(async () => {
+    try {
+      if (!token) {
+        navigate("/login");
+        return;
       }
-    };
 
-    fetchCustomers();
-  }, [dateFilter]);
+      setLoading(true);
+
+      const params = {};
+
+      if (dateFilter.startDate && dateFilter.endDate) {
+        params.start_date = dateFilter.startDate;
+        params.end_date = dateFilter.endDate;
+      } else if (dateFilter.range && dateFilter.range !== "all") {
+        params.range = dateFilter.range;
+      }
+
+      const res = await API.get("/customers", {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setCustomers(res.data);
+    } catch (err) {
+      console.error(err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFilter, token, navigate, logoutAndRedirect]);
+
+  const fetchRestaurants = useCallback(async () => {
+    try {
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const res = await API.get("/restaurants", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setRestaurants(res.data);
+    } catch (err) {
+      console.error(err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+      }
+    }
+  }, [token, navigate, logoutAndRedirect]);
 
   useEffect(() => {
-    API.get("/restaurants")
-      .then(res => setRestaurants(res.data))
-      .catch(err => console.error(err));
-  }, []);
+    fetchCustomers();
+  }, [fetchCustomers]);
+
+  useEffect(() => {
+    fetchRestaurants();
+  }, [fetchRestaurants]);
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
@@ -66,7 +110,6 @@ function CustomersPage() {
 
   return (
     <div style={pageStyle}>
-      {/* HEADER */}
       <div style={headerCardStyle}>
         <div style={headerRowStyle}>
           <div>
@@ -89,7 +132,6 @@ function CustomersPage() {
         </div>
       </div>
 
-      {/* SUMMARY */}
       <div style={summaryGridStyle}>
         <div style={summaryCardStyle}>
           <div style={summaryLabelStyle}>All Customers</div>
@@ -102,7 +144,6 @@ function CustomersPage() {
         </div>
       </div>
 
-      {/* FILTERS */}
       <div style={filterCardStyle}>
         <div style={{ display: "grid", gap: "12px" }}>
           <select
@@ -128,7 +169,6 @@ function CustomersPage() {
         </div>
       </div>
 
-      {/* LIST */}
       {loading ? (
         <div style={emptyCardStyle}>Loading customers...</div>
       ) : filteredCustomers.length === 0 ? (
@@ -144,9 +184,7 @@ function CustomersPage() {
               <div style={customerHeaderStyle}>
                 <h3 style={{ margin: 0 }}>👤 {c.customer_name}</h3>
 
-                <span style={badgeStyle}>
-                  #{c.customer_id}
-                </span>
+                <span style={badgeStyle}>#{c.customer_id}</span>
               </div>
 
               <div style={{ marginTop: "12px", display: "grid", gap: "8px" }}>

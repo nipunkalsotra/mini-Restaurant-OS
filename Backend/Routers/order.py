@@ -1,21 +1,51 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-import models, schemas
-from database import get_db
-from schemas import OrderStatus, PaymentStatus
 from datetime import datetime, timedelta
 
-router = APIRouter(prefix= "/orders", tags = ["Orders"])
+import models
+import schemas
+from database import get_db
+from schemas import OrderStatus, PaymentStatus
+from auth import get_current_user
 
-@router.post("", response_model=schemas.OrderDetailResponse)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
+router = APIRouter(prefix="/orders", tags=["Orders"])
+
+def get_user_restaurant(db: Session, restaurant_id: int, user_id: int):
     restaurant = db.query(models.Restaurant).filter(
-        models.Restaurant.restaurant_id == order.restaurant_id
+        models.Restaurant.restaurant_id == restaurant_id,
+        models.Restaurant.user_id == user_id
     ).first()
 
     if not restaurant:
         raise HTTPException(status_code=404, detail="Restaurant not found")
+
+    return restaurant
+
+
+def get_user_order(db: Session, order_id: int, user_id: int):
+    order = (
+        db.query(models.Order)
+        .join(models.Restaurant, models.Order.restaurant_id == models.Restaurant.restaurant_id)
+        .filter(
+            models.Order.order_id == order_id,
+            models.Restaurant.user_id == user_id
+        )
+        .first()
+    )
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    return order
+
+@router.post("", response_model=schemas.OrderDetailResponse)
+def create_order(
+    order: schemas.OrderCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    restaurant = get_user_restaurant(db, order.restaurant_id, current_user.user_id)
 
     new_order = models.Order(
         restaurant_id=order.restaurant_id,
@@ -43,67 +73,60 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
                 raise HTTPException(status_code=404, detail=f"Menu item {item.menu_item_id} not found")
 
             if menu_item.restaurant_id != order.restaurant_id:
-                raise HTTPException(status_code=400, detail=f"{menu_item.item_name} does not belong to this restaurant")
+                raise HTTPException(status_code=400, detail="Item does not belong to this restaurant")
 
             if not menu_item.is_active:
-                raise HTTPException(status_code=400, detail=f"{menu_item.item_name} is not available")
+                raise HTTPException(status_code=400, detail="Item not available")
 
             item_total = menu_item.item_price * item.quantity
             total_amount += item_total
 
-            new_order_item = models.OrderItem(
+            db.add(models.OrderItem(
                 order_id=new_order.order_id,
                 menu_item_id=item.menu_item_id,
                 item_name=menu_item.item_name,
                 quantity=item.quantity,
                 price_at_order=menu_item.item_price
-            )
-
-            db.add(new_order_item)
+            ))
 
         new_order.total_amount = total_amount
         db.commit()
         db.refresh(new_order)
 
-        order_items = db.query(models.OrderItem).filter(
+        items = db.query(models.OrderItem).filter(
             models.OrderItem.order_id == new_order.order_id
         ).all()
 
         order_response = schemas.OrderResponse.model_validate(new_order)
         order_response.customer_name = new_order.customer.customer_name if new_order.customer else None
 
-        return schemas.OrderDetailResponse(
-            order=order_response,
-            items=order_items
-        )
-
-    except HTTPException:
-        db.rollback()
-        raise
+        return schemas.OrderDetailResponse(order=order_response, items=items)
 
     except Exception as e:
         db.rollback()
-        print("ORDER CREATION ERROR:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("", response_model=list[schemas.OrderResponse])
-def get_order(
+def get_orders(
     range: str | None = Query(None),
     start_date: str | None = Query(None),
     end_date: str | None = Query(None),
     status: OrderStatus | None = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
-    query = db.query(models.Order)
+    query = (
+        db.query(models.Order)
+        .join(models.Restaurant, models.Order.restaurant_id == models.Restaurant.restaurant_id)
+        .filter(models.Restaurant.user_id == current_user.user_id)
+    )
 
     if status:
         query = query.filter(models.Order.status == status)
 
     if start_date and end_date:
         start = datetime.fromisoformat(start_date)
-        end = datetime.fromisoformat(end_date)
-        end = end.replace(hour=23, minute=59, second=59)
+        end = datetime.fromisoformat(end_date).replace(hour=23, minute=59, second=59)
 
         query = query.filter(
             models.Order.created_at >= start,
@@ -114,173 +137,85 @@ def get_order(
         now = datetime.utcnow()
 
         if range == "today":
-            today = now.date()
-            query = query.filter(func.date(models.Order.created_at) == today)
+            query = query.filter(func.date(models.Order.created_at) == now.date())
 
         elif range == "7d":
-            query = query.filter(
-                models.Order.created_at >= now - timedelta(days=7)
-            )
+            query = query.filter(models.Order.created_at >= now - timedelta(days=7))
 
         elif range == "30d":
-            query = query.filter(
-                models.Order.created_at >= now - timedelta(days=30)
-            )
-
-        elif range == "all":
-            pass
+            query = query.filter(models.Order.created_at >= now - timedelta(days=30))
 
     orders = query.order_by(models.Order.created_at.desc()).all()
 
-    for order in orders:
-        order.customer_name = order.customer.customer_name if order.customer else None
+    for o in orders:
+        o.customer_name = o.customer.customer_name if o.customer else None
 
     return [schemas.OrderResponse.from_orm(o) for o in orders]
 
-@router.get("/kitchen", response_model= list[schemas.OrderDetailResponse])
-def  get_kitchen_orders(db : Session = Depends(get_db)):
-    orders = db.query(models.Order).filter(
-        models.Order.status.in_([
-            OrderStatus.pending,
-            OrderStatus.preparing,
-            OrderStatus.ready
-        ])
-    ).order_by(models.Order.created_at).all()
+@router.get("/kitchen", response_model=list[schemas.OrderDetailResponse])
+def get_kitchen_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    orders = (
+        db.query(models.Order)
+        .join(models.Restaurant)
+        .filter(
+            models.Restaurant.user_id == current_user.user_id,
+            models.Order.status.in_([
+                OrderStatus.pending,
+                OrderStatus.preparing,
+                OrderStatus.ready
+            ])
+        )
+        .all()
+    )
 
     response = []
     for order in orders:
-        order_items = db.query(models.OrderItem).filter(
+        items = db.query(models.OrderItem).filter(
             models.OrderItem.order_id == order.order_id
         ).all()
 
         order_response = schemas.OrderResponse.from_orm(order)
         order_response.customer_name = order.customer.customer_name if order.customer else None
 
-        response.append(
-            schemas.OrderDetailResponse(
-                order=order_response,
-                items=order_items
-            )
-        )
+        response.append(schemas.OrderDetailResponse(order=order_response, items=items))
+
     return response
 
-@router.get("/billing/pending", response_model= list[schemas.OrderDetailResponse])
-def get_pending_billing_orders(db : Session = Depends(get_db)):
-    pending_orders = db.query(models.Order).filter(
-        models.Order.status == OrderStatus.served,
-        models.Order.payment_status == PaymentStatus.unpaid
-    ).order_by(
-        models.Order.created_at.desc()
-        ).all()
+@router.get("/{order_id}", response_model=schemas.OrderDetailResponse)
+def get_order_by_id(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    order = get_user_order(db, order_id, current_user.user_id)
 
-    response = []
-    for order in pending_orders:
-        order_items = db.query(models.OrderItem).filter(
-            models.OrderItem.order_id == order.order_id
-        ).all()
-
-        order_response = schemas.OrderResponse.from_orm(order)
-        order_response.customer_name = order.customer.customer_name if order.customer else None
-
-        response.append(
-            schemas.OrderDetailResponse(
-                order = order_response,
-                items = order_items
-            )
-        )
-
-    return response or []
-
-@router.get("/{order_id}", response_model= schemas.OrderDetailResponse)
-def get_order_by_id(order_id: int, db: Session = Depends(get_db)):
-    order = db.query(models.Order).filter(
-        models.Order.order_id == order_id
-        ).first()
-    
-    if not order:
-        raise HTTPException(status_code= 404, detail= "Order not Found")
-    
-    order_items = db.query(models.OrderItem).filter(
+    items = db.query(models.OrderItem).filter(
         models.OrderItem.order_id == order_id
     ).all()
 
     order_response = schemas.OrderResponse.from_orm(order)
     order_response.customer_name = order.customer.customer_name if order.customer else None
 
-    return schemas.OrderDetailResponse(
-        order = order_response,
-        items = order_items
-    )
+    return schemas.OrderDetailResponse(order=order_response, items=items)
 
 @router.put("/{order_id}", response_model=schemas.OrderResponse)
-def update_order(order_id: int, order: schemas.OrderUpdate, db: Session = Depends(get_db)):
+def update_order(
+    order_id: int,
+    order: schemas.OrderUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    db_order = get_user_order(db, order_id, current_user.user_id)
 
-    db_order = db.query(models.Order).filter(
-        models.Order.order_id == order_id
-    ).first()
+    updated_data = order.model_dump(exclude_unset=True)
 
-    if not db_order:
-       raise HTTPException(status_code=404, detail="Order not found")
-    
-    ORDER_STATUS_TRANSITIONS = {
-        OrderStatus.pending : [OrderStatus.preparing, OrderStatus.cancelled],
-        OrderStatus.preparing : [OrderStatus.ready],
-        OrderStatus.ready : [OrderStatus.served],
-        OrderStatus.served : [OrderStatus.completed],
-        OrderStatus.completed : [],
-        OrderStatus.cancelled : []
-    }
-
-    PAYMENT_STATUS_TRANSITIONS = {
-        PaymentStatus.unpaid : [PaymentStatus.paid],
-        PaymentStatus.paid : []
-    }
-
-    if order.status:
-        current_status = db_order.status
-        new_status = order.status
-
-        if new_status not in ORDER_STATUS_TRANSITIONS[current_status]:
-            raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
-        
-    if order.payment_status:
-        current_status = db_order.payment_status
-        new_status = order.payment_status
-        if new_status not in PAYMENT_STATUS_TRANSITIONS[current_status]:
-            raise HTTPException(status_code= 400, detail= f"Invalid status transition from {current_status} to {new_status}")
-
-    if order.status == OrderStatus.cancelled and db_order.status != OrderStatus.cancelled:
-        order_items = db.query(models.OrderItem).filter(
-            models.OrderItem.order_id == order_id
-        ).all()
-
-        for item in order_items:
-            menu_item = db.query(models.MenuItem).filter(
-                models.MenuItem.menu_item_id == item.menu_item_id
-            ).first()
-
-            if menu_item:
-                menu_item.stock += item.quantity
-
-    updated_order = order.dict(exclude_unset=True)
-    for key, value in updated_order.items():
+    for key, value in updated_data.items():
         setattr(db_order, key, value)
-
-    if db_order.status == OrderStatus.served and db_order.payment_status == PaymentStatus.paid:
-        db_order.status = OrderStatus.completed
 
     db.commit()
     db.refresh(db_order)
 
     return schemas.OrderResponse.from_orm(db_order)
-
-@router.get("/filter", response_model= list[schemas.OrderResponse])
-def get_order_history(status : OrderStatus | None = None, db : Session = Depends(get_db)):
-    query = db.query(models.Order)
-
-    if status:
-        query = query.filter(
-            models.Order.status == status
-        )
-
-    return query.all()

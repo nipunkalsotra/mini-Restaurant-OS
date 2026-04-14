@@ -23,6 +23,7 @@ const TAX_RATE = 5;
 function BillingPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const token = localStorage.getItem("restaurant_os_token");
 
   const [cart, setCart] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -46,6 +47,18 @@ function BillingPage() {
     payment_method: "cash"
   });
 
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("restaurant_os_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
+
   useEffect(() => {
     if (location.state?.cart) {
       setCart(location.state.cart);
@@ -59,22 +72,38 @@ function BillingPage() {
 
   const fetchPendingOrders = useCallback(async () => {
     try {
-      const res = await API.get("/orders/billing/pending");
+      const res = await API.get("/orders/billing/pending", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       setPendingOrders(res.data);
     } catch (err) {
       console.error("Failed to fetch pending orders", err);
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+      }
     }
-  }, []);
+  }, [token, logoutAndRedirect]);
 
   useEffect(() => {
     fetchPendingOrders();
   }, [fetchPendingOrders]);
 
   useEffect(() => {
-    API.get("/customers")
+    API.get("/customers", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
       .then((res) => setCustomers(res.data))
-      .catch((err) => console.error(err));
-  }, []);
+      .catch((err) => {
+        console.error(err);
+        if (err.response?.status === 401) {
+          logoutAndRedirect();
+        }
+      });
+  }, [token, logoutAndRedirect]);
 
   const filteredCustomers = customers.filter((c) => {
     const search = customerSearch.toLowerCase();
@@ -169,11 +198,19 @@ function BillingPage() {
         return null;
       }
 
-      const res = await API.post("/customers", {
-        restaurant_id: cart[0]?.restaurant_id || 1,
-        customer_name: newCustomer.name,
-        customer_phone: newCustomer.phone
-      });
+      const res = await API.post(
+        "/customers",
+        {
+          restaurant_id: cart[0]?.restaurant_id || 1,
+          customer_name: newCustomer.name,
+          customer_phone: newCustomer.phone
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
       customerId = res.data.customer_id;
       setSelectedCustomerId(customerId);
@@ -183,7 +220,11 @@ function BillingPage() {
   };
 
   const fetchBillByOrderId = async (orderId) => {
-    const billRes = await API.get(`/orders/${orderId}`);
+    const billRes = await API.get(`/orders/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     setGeneratedBill(billRes.data);
     return billRes.data;
   };
@@ -215,7 +256,11 @@ function BillingPage() {
       }))
     };
 
-    const res = await API.post("/orders", payload);
+    const res = await API.post("/orders", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return res.data;
   };
 
@@ -244,7 +289,11 @@ function BillingPage() {
       updatePayload.payment_method = "na";
     }
 
-    const res = await API.put(`/orders/${selectedOrderId}`, updatePayload);
+    const res = await API.put(`/orders/${selectedOrderId}`, updatePayload, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
     return res.data;
   };
 
@@ -274,6 +323,12 @@ function BillingPage() {
       navigate("/");
     } catch (err) {
       console.error(err.response?.data || err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+
       alert(err.response?.data?.detail || "❌ Failed to save unpaid order");
     } finally {
       setIsSubmitting(false);
@@ -299,21 +354,29 @@ function BillingPage() {
 
         setOrderDetails((prev) => ({ ...prev, payment_method: method }));
 
-        const createdOrder = await API.post("/orders", {
-          restaurant_id: cart[0]?.restaurant_id || 1,
-          customer_id: await createCustomerIfNeeded(),
-          table_number: orderDetails.table_number
-            ? Number(orderDetails.table_number)
-            : null,
-          status: ORDER_STATUS.pending,
-          payment_method: method,
-          payment_status: PAYMENT_STATUS.paid,
-          notes: orderDetails.notes,
-          items: cart.map((item) => ({
-            menu_item_id: item.menu_item_id,
-            quantity: item.quantity
-          }))
-        });
+        const createdOrder = await API.post(
+          "/orders",
+          {
+            restaurant_id: cart[0]?.restaurant_id || 1,
+            customer_id: await createCustomerIfNeeded(),
+            table_number: orderDetails.table_number
+              ? Number(orderDetails.table_number)
+              : null,
+            status: ORDER_STATUS.pending,
+            payment_method: method,
+            payment_status: PAYMENT_STATUS.paid,
+            notes: orderDetails.notes,
+            items: cart.map((item) => ({
+              menu_item_id: item.menu_item_id,
+              quantity: item.quantity
+            }))
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
 
         orderIdToFetch = createdOrder.data.order_id;
 
@@ -348,6 +411,12 @@ function BillingPage() {
       localStorage.removeItem("cart");
     } catch (err) {
       console.error(err.response?.data || err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+
       alert(err.response?.data?.detail || "❌ Failed to collect payment");
     } finally {
       setIsSubmitting(false);

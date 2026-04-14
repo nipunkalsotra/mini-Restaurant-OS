@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import API from "../api/api";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DateFilter from "../components/DataFilter";
@@ -22,31 +22,57 @@ function OrdersPage() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true);
+  const token = localStorage.getItem("restaurant_os_token");
 
-        const params = {};
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
 
-        if (dateFilter.startDate && dateFilter.endDate) {
-          params.start_date = dateFilter.startDate;
-          params.end_date = dateFilter.endDate;
-        } else if (dateFilter.range && dateFilter.range !== "all") {
-          params.range = dateFilter.range;
-        }
-
-        const res = await API.get("/orders", { params });
-        setOrders(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsLoading(false);
+  const fetchOrders = useCallback(async () => {
+    try {
+      if (!token) {
+        navigate("/login");
+        return;
       }
-    };
 
+      setIsLoading(true);
+
+      const params = {};
+
+      if (dateFilter.startDate && dateFilter.endDate) {
+        params.start_date = dateFilter.startDate;
+        params.end_date = dateFilter.endDate;
+      } else if (dateFilter.range && dateFilter.range !== "all") {
+        params.range = dateFilter.range;
+      }
+
+      const res = await API.get("/orders", {
+        params,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      setOrders(res.data);
+    } catch (err) {
+      console.error(err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+
+      alert(err.response?.data?.detail || "Failed to load orders");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [dateFilter, token, navigate, logoutAndRedirect]);
+
+  useEffect(() => {
     fetchOrders();
-  }, [dateFilter]);
+  }, [fetchOrders]);
 
   const statuses = [
     "all",
@@ -92,15 +118,30 @@ function OrdersPage() {
     if (!window.confirm("Cancel this order?")) return;
 
     try {
-      await API.put(`/orders/${orderId}`, { status: "cancelled" });
+      await API.put(
+        `/orders/${orderId}`,
+        { status: "cancelled" },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
       setOrders((prev) =>
         prev.map((o) =>
           o.order_id === orderId ? { ...o, status: "cancelled" } : o
         )
       );
     } catch (err) {
-      console.error(err.response?.data);
-      alert("❌ Cannot cancel order");
+      console.error(err.response?.data || err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+
+      alert(err.response?.data?.detail || "❌ Cannot cancel order");
     }
   };
 
@@ -489,4 +530,4 @@ const badgeStyle = {
   textTransform: "capitalize"
 };
 
-export default OrdersPage;
+export default OrdersPage

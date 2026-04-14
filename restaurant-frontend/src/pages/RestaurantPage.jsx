@@ -8,7 +8,7 @@ function RestaurantPage() {
         restaurant_name: "",
         restaurant_phone: "",
         restaurant_email: "",
-        address: "",
+        restaurant_address: "",
         tax_rate: ""
     });
 
@@ -18,7 +18,7 @@ function RestaurantPage() {
         restaurant_name: "",
         restaurant_phone: "",
         restaurant_email: "",
-        address: "",
+        restaurant_address: "",
         tax_rate: ""
     });
 
@@ -114,7 +114,7 @@ function RestaurantPage() {
                 restaurant_name: restaurantRes.data.restaurant_name || "",
                 restaurant_phone: restaurantRes.data.restaurant_phone || "",
                 restaurant_email: restaurantRes.data.restaurant_email || "",
-                address: restaurantRes.data.address || "",
+                restaurant_address: restaurantRes.data.restaurant_address || "",
                 tax_rate:
                     restaurantRes.data.tax_rate === null ||
                     restaurantRes.data.tax_rate === undefined
@@ -185,7 +185,7 @@ function RestaurantPage() {
                 restaurant_name: restaurantForm.restaurant_name,
                 restaurant_phone: restaurantForm.restaurant_phone || null,
                 restaurant_email: restaurantForm.restaurant_email || null,
-                address: restaurantForm.address || null,
+                restaurant_address: restaurantForm.restaurant_address || null,
                 tax_rate:
                     restaurantForm.tax_rate === ""
                         ? null
@@ -225,7 +225,7 @@ function RestaurantPage() {
                 restaurant_name: newRestaurantForm.restaurant_name,
                 restaurant_phone: newRestaurantForm.restaurant_phone || null,
                 restaurant_email: newRestaurantForm.restaurant_email || null,
-                address: newRestaurantForm.address || null,
+                restaurant_address: newRestaurantForm.restaurant_address || null,
                 tax_rate:
                     newRestaurantForm.tax_rate === ""
                         ? 0
@@ -240,7 +240,7 @@ function RestaurantPage() {
                 restaurant_name: "",
                 restaurant_phone: "",
                 restaurant_email: "",
-                address: "",
+                restaurant_address: "",
                 tax_rate: ""
             });
 
@@ -572,11 +572,11 @@ function RestaurantPage() {
 
                         <textarea
                             placeholder="Address"
-                            value={newRestaurantForm.address}
+                            value={newRestaurantForm.restaurant_address}
                             onChange={(e) =>
                                 setNewRestaurantForm((prev) => ({
                                     ...prev,
-                                    address: e.target.value
+                                    restaurant_address: e.target.value
                                 }))
                             }
                             style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}
@@ -660,11 +660,11 @@ function RestaurantPage() {
 
                             <textarea
                                 placeholder="Address"
-                                value={restaurantForm.address}
+                                value={restaurantForm.restaurant_address}
                                 onChange={(e) =>
                                     setRestaurantForm((prev) => ({
                                         ...prev,
-                                        address: e.target.value
+                                        restaurant_address: e.target.value
                                     }))
                                 }
                                 style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }}

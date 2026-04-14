@@ -1,31 +1,57 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/api";
 
 function OrderDetailPage() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const token = localStorage.getItem("restaurant_os_token");
 
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("restaurant_os_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    }
+  }, [token, navigate]);
+
   useEffect(() => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
-        const res = await API.get(`/orders/${orderId}`);
+
+        const res = await API.get(`/orders/${orderId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
         setOrder(res.data.order);
         setItems(res.data.items || []);
       } catch (err) {
         console.error(err);
+
+        if (err.response?.status === 401) {
+          logoutAndRedirect();
+          return;
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrder();
-  }, [orderId]);
+    if (token) {
+      fetchOrder();
+    }
+  }, [orderId, token, logoutAndRedirect]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -117,10 +143,7 @@ function OrderDetailPage() {
           }}
         >
           <div>
-            <button
-              onClick={() => navigate(-1)}
-              style={backButtonStyle}
-            >
+            <button onClick={() => navigate(-1)} style={backButtonStyle}>
               ← Back
             </button>
 
@@ -233,7 +256,10 @@ function OrderDetailPage() {
           <h2 style={sectionTitleStyle}>💰 Bill Summary</h2>
 
           <div style={billCardStyle}>
-            <BillRow label="Items Total" value={`₹${Number(order.total_amount || 0).toFixed(2)}`} />
+            <BillRow
+              label="Items Total"
+              value={`₹${Number(order.total_amount || 0).toFixed(2)}`}
+            />
             <BillRow label="Number of Items" value={itemCount} />
             <hr style={{ margin: "12px 0" }} />
             <BillRow

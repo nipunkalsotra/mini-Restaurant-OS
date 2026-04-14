@@ -3,6 +3,26 @@ from datetime import datetime
 from typing import Optional, List
 from enum import Enum
 
+class UserSignup(BaseModel):
+    user_name : str
+    user_email : str
+    password : str
+
+class UserLogin(BaseModel):
+    user_email : str
+    password : str
+
+class UserResponse(BaseModel):
+    user_id : int
+    user_name : str
+    user_email : str
+    created_at : datetime
+
+    model_config = ConfigDict(from_attributes= True)
+
+class Token(BaseModel):
+    access_token : str
+    token_type : str
 
 class RestaurantCreate(BaseModel):
     restaurant_name: str
@@ -10,8 +30,6 @@ class RestaurantCreate(BaseModel):
     restaurant_email: Optional[str] = None
     restaurant_address : Optional[str] = None
     tax_rate : Optional[float] = 0
-    password: Optional[str] = None
-
 
 class RestaurantResponse(BaseModel):
     restaurant_id: int

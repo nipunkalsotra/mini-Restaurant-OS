@@ -1,36 +1,75 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import API from "../api/api";
+import { useNavigate } from "react-router-dom";
 
 function KitchenPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const navigate = useNavigate();
+  const token = localStorage.getItem("restaurant_os_token");
+
   const statuses = ["pending", "preparing", "ready"];
 
-  const fetchOrders = async () => {
+  const logoutAndRedirect = useCallback(() => {
+    localStorage.removeItem("restaurant_os_token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  }, [navigate]);
+
+  const fetchOrders = useCallback(async (showLoader = false) => {
     try {
-      setLoading(true);
-      const res = await API.get("/orders/kitchen");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      if (showLoader) {
+        setLoading(true);
+      }
+
+      const res = await API.get("/orders/kitchen", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
       setOrders(res.data);
     } catch (err) {
       console.error(err);
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, navigate, logoutAndRedirect]);
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    fetchOrders(true);
+
+    const interval = setInterval(() => {
+      fetchOrders(false);
+    }, 5000);
+
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchOrders]);
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      await API.put(`/orders/${orderId}`, { status: newStatus });
+      await API.put(
+        `/orders/${orderId}`,
+        { status: newStatus },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
 
-      // 🔥 Optimistic UI (no flicker)
       setOrders((prev) =>
         prev.map((o) =>
           o.order.order_id === orderId
@@ -40,7 +79,13 @@ function KitchenPage() {
       );
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to update order status");
+
+      if (err.response?.status === 401) {
+        logoutAndRedirect();
+        return;
+      }
+
+      alert(err.response?.data?.detail || "❌ Failed to update order status");
     }
   };
 
@@ -81,7 +126,6 @@ function KitchenPage() {
 
   return (
     <div style={pageStyle}>
-      {/* HEADER */}
       <div style={headerCardStyle}>
         <div style={headerRowStyle}>
           <div>
@@ -101,7 +145,6 @@ function KitchenPage() {
           </div>
         </div>
 
-        {/* SEARCH */}
         <input
           type="text"
           placeholder="🔍 Search by Order ID / Table"
@@ -111,7 +154,6 @@ function KitchenPage() {
         />
       </div>
 
-      {/* COLUMNS */}
       <div style={columnsWrapper}>
         {statuses.map((status) => {
           const ordersInStatus = getOrdersByStatus(status);
@@ -126,9 +168,7 @@ function KitchenPage() {
               </div>
 
               {ordersInStatus.length === 0 ? (
-                <div style={emptyInnerStyle}>
-                  No {status} orders
-                </div>
+                <div style={emptyInnerStyle}>No {status} orders</div>
               ) : (
                 ordersInStatus.map((o) => (
                   <div
@@ -138,7 +178,6 @@ function KitchenPage() {
                       borderTop: `4px solid ${getStatusColor(o.order.status)}`
                     }}
                   >
-                    {/* HEADER */}
                     <div style={cardHeader}>
                       <div>
                         <h3 style={{ margin: 0 }}>
@@ -160,7 +199,6 @@ function KitchenPage() {
                       </span>
                     </div>
 
-                    {/* ITEMS */}
                     <div style={itemsBox}>
                       {o.items?.map((item) => (
                         <div key={item.order_item_id} style={itemRow}>
@@ -170,7 +208,6 @@ function KitchenPage() {
                       ))}
                     </div>
 
-                    {/* ACTION */}
                     <div style={{ display: "flex", gap: "10px" }}>
                       {o.order.status === "pending" && (
                         <button
@@ -215,8 +252,6 @@ function KitchenPage() {
     </div>
   );
 }
-
-/* STYLES */
 
 const pageStyle = {
   minHeight: "100vh",

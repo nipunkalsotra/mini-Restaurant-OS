@@ -3,8 +3,22 @@ import { useNavigate } from "react-router-dom";
 function Cart({ cart, setCart, onCheckout }) {
   const navigate = useNavigate();
 
+  const updateCartState = (updater) => {
+    setCart((prev) => {
+      const nextCart = typeof updater === "function" ? updater(prev) : updater;
+
+      if (nextCart.length === 0) {
+        localStorage.removeItem("cart");
+      } else {
+        localStorage.setItem("cart", JSON.stringify(nextCart));
+      }
+
+      return nextCart;
+    });
+  };
+
   const increaseQty = (id) => {
-    setCart((prev) =>
+    updateCartState((prev) =>
       prev.map((item) =>
         item.menu_item_id === id
           ? { ...item, quantity: item.quantity + 1 }
@@ -14,7 +28,7 @@ function Cart({ cart, setCart, onCheckout }) {
   };
 
   const decreaseQty = (id) => {
-    setCart((prev) =>
+    updateCartState((prev) =>
       prev
         .map((item) =>
           item.menu_item_id === id
@@ -26,13 +40,16 @@ function Cart({ cart, setCart, onCheckout }) {
   };
 
   const removeItem = (id) => {
-    setCart((prev) => prev.filter((item) => item.menu_item_id !== id));
+    updateCartState((prev) =>
+      prev.filter((item) => item.menu_item_id !== id)
+    );
   };
 
   const clearCart = () => {
     if (cart.length === 0) return;
+
     if (window.confirm("Are you sure you want to empty the cart?")) {
-      setCart([]);
+      updateCartState([]);
     }
   };
 
