@@ -15,6 +15,7 @@ import OrderDetailPage from "./pages/OrderDetailPage";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import BillingPage from "./pages/BillingPage";
 import RestaurantPage from "./pages/RestaurantPage";
+import WelcomePage from "./pages/WelcomePage";
 
 import { isLoggedIn } from "./utils/auth";
 
@@ -25,10 +26,26 @@ function AppLayout({ cart, setCart }) {
     location.pathname === "/login" || location.pathname === "/signup";
 
   return (
-    <div style={{ display: "flex" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "var(--bg-primary)",
+        color: "var(--text-primary)",
+        transition: "background var(--transition-fast), color var(--transition-fast)",
+      }}
+    >
       {!hideSidebar && <Sidebar />}
 
-      <div style={{ flex: 1, padding: "20px" }}>
+      <div
+        style={{
+          flex: 1,
+          padding: "20px",
+          background: "var(--bg-primary)",
+          color: "var(--text-primary)",
+          transition: "background var(--transition-fast), color var(--transition-fast)",
+        }}
+      >
         <Routes>
           <Route
             path="/login"
@@ -45,7 +62,40 @@ function AppLayout({ cart, setCart }) {
           />
 
           <Route
+            path="/welcome"
+            element={
+              <ProtectedRoute>
+                <WelcomePage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
             path="/"
+            element={
+              isLoggedIn() ? (
+                localStorage.getItem("showWelcomeAfterSignup") === "true" ? (
+                  <Navigate to="/welcome" replace />
+                ) : (
+                  <Navigate to="/restaurants" replace />
+                )
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+
+          <Route
+            path="/restaurants"
+            element={
+              <ProtectedRoute>
+                <RestaurantPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/menu"
             element={
               <ProtectedRoute>
                 <MenuPage cart={cart} setCart={setCart} />
@@ -112,15 +162,6 @@ function AppLayout({ cart, setCart }) {
             element={
               <ProtectedRoute>
                 <BillingPage cart={cart} setCart={setCart} />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/restaurant-settings"
-            element={
-              <ProtectedRoute>
-                <RestaurantPage />
               </ProtectedRoute>
             }
           />

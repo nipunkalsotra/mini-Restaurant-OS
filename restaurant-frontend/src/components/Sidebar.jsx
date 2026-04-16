@@ -9,6 +9,7 @@ import {
   FaSignOutAlt
 } from "react-icons/fa";
 
+import ThemeToggle from "./ThemeToggle"; // 👈 ADD THIS
 import { removeToken } from "../utils/auth";
 
 function Sidebar() {
@@ -21,7 +22,7 @@ function Sidebar() {
     padding: "12px 15px",
     borderRadius: "8px",
     textDecoration: "none",
-    color: "white",
+    color: "var(--text-primary)", // ✅ CHANGED
     transition: "all 0.2s ease",
   };
 
@@ -40,17 +41,23 @@ function Sidebar() {
       style={{
         width: "220px",
         height: "100vh",
-        background: "#222",
-        color: "white",
+        background: "var(--bg-tertiary)", // ✅ CHANGED
+        color: "var(--text-primary)",     // ✅ CHANGED
         padding: "20px",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between", // 👈 important
+        justifyContent: "space-between",
+        borderRight: "1px solid var(--border-color)", // ✅ NICE TOUCH
       }}
     >
       {/* TOP SECTION */}
       <div>
-        <h2 style={{ marginBottom: "40px", color: "#00bcd4" }}>
+        <h2
+          style={{
+            marginBottom: "40px",
+            color: "#00bcd4",
+          }}
+        >
           Restaurant OS
         </h2>
 
@@ -120,24 +127,33 @@ function Sidebar() {
         </nav>
       </div>
 
-      {/* BOTTOM SECTION (LOGOUT) */}
-      <button
-        onClick={handleLogout}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          padding: "12px",
-          borderRadius: "8px",
-          border: "none",
-          cursor: "pointer",
-          background: "#e74c3c",
-          color: "white",
-          fontWeight: "bold",
-        }}
-      >
-        <FaSignOutAlt /> Logout
-      </button>
+      {/* BOTTOM SECTION */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        
+        {/* THEME TOGGLE */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <ThemeToggle />
+        </div>
+
+        {/* LOGOUT */}
+        <button
+          onClick={handleLogout}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "12px",
+            borderRadius: "8px",
+            border: "none",
+            cursor: "pointer",
+            background: "#e74c3c",
+            color: "white",
+            fontWeight: "bold",
+          }}
+        >
+          <FaSignOutAlt /> Logout
+        </button>
+      </div>
     </div>
   );
 }

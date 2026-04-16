@@ -28,7 +28,16 @@ function LoginPage() {
 
     try {
       const res = await API.post("/auth/login", formData);
+
       saveToken(res.data.access_token);
+
+      if (res.data.user) {
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+      }
+
+      // Normal login should NOT show welcome page
+      localStorage.removeItem("showWelcomeAfterSignup");
+
       navigate("/restaurants");
     } catch (err) {
       setError(err.response?.data?.detail || "Login failed");

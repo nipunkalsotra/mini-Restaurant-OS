@@ -28,18 +28,33 @@ function SignupPage() {
         setLoading(true);
 
         try {
+            // Step 1: Signup
             await API.post("/auth/signup", formData);
 
+            // Step 2: Auto login
             const loginRes = await API.post("/auth/login", {
                 user_email: formData.user_email,
                 password: formData.password,
             });
 
+            // Step 3: Save token
             saveToken(loginRes.data.access_token);
-            navigate("/restaurants");
+
+            // Optional: store user (good for welcome page name)
+            if (loginRes.data.user) {
+                localStorage.setItem("user", JSON.stringify(loginRes.data.user));
+            }
+
+            // 🔥 IMPORTANT: mark first-time onboarding
+            localStorage.setItem("showWelcomeAfterSignup", "true");
+
+            // Step 4: go to welcome page
+            navigate("/welcome");
+
         } catch (err) {
             console.error("Signup error:", err);
             console.error("Response data:", err.response?.data);
+
             setError(
                 err.response?.data?.detail ||
                 JSON.stringify(err.response?.data) ||
