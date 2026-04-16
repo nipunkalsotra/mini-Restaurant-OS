@@ -20,12 +20,11 @@ const PAYMENT_STATUS = {
 
 const TAX_RATE = 5;
 
-function BillingPage() {
+function BillingPage({ cart, setCart }) {
   const location = useLocation();
   const navigate = useNavigate();
   const token = localStorage.getItem("restaurant_os_token");
 
-  const [cart, setCart] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
@@ -68,7 +67,7 @@ function BillingPage() {
         setCart(JSON.parse(saved));
       }
     }
-  }, [location.state]);
+  }, [location.state, setCart]);
 
   const fetchPendingOrders = useCallback(async () => {
     try {
@@ -176,6 +175,7 @@ function BillingPage() {
     setSelectedCustomerId("");
     setCustomerSearch("");
     setShowNewCustomerForm(false);
+    setShowPaymentModal(false);
     setNewCustomer({ name: "", phone: "" });
     setDiscountType("percent");
     setDiscountValue(0);
@@ -217,16 +217,6 @@ function BillingPage() {
     }
 
     return customerId ? Number(customerId) : null;
-  };
-
-  const fetchBillByOrderId = async (orderId) => {
-    const billRes = await API.get(`/orders/${orderId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    setGeneratedBill(billRes.data);
-    return billRes.data;
   };
 
   const createNewOrder = async (paymentMode) => {
@@ -319,8 +309,11 @@ function BillingPage() {
 
       await fetchPendingOrders();
       alert("Order saved for pending payment.");
+
       clearCurrentBill();
-      navigate("/");
+      setShowPaymentModal(false);
+      setGeneratedBill(null);
+      navigate("/menu");
     } catch (err) {
       console.error(err.response?.data || err);
 
@@ -344,17 +337,10 @@ function BillingPage() {
     try {
       setIsSubmitting(true);
 
-      let orderIdToFetch = null;
-
       if (selectedOrderId) {
         await updateExistingOrder("paid", method);
-        orderIdToFetch = selectedOrderId;
       } else {
-        const previousPaymentMethod = orderDetails.payment_method;
-
-        setOrderDetails((prev) => ({ ...prev, payment_method: method }));
-
-        const createdOrder = await API.post(
+        await API.post(
           "/orders",
           {
             restaurant_id: cart[0]?.restaurant_id || 1,
@@ -377,38 +363,14 @@ function BillingPage() {
             }
           }
         );
-
-        orderIdToFetch = createdOrder.data.order_id;
-
-        setOrderDetails((prev) => ({
-          ...prev,
-          payment_method: previousPaymentMethod || "cash"
-        }));
-      }
-
-      if (orderIdToFetch) {
-        await fetchBillByOrderId(orderIdToFetch);
       }
 
       setShowPaymentModal(false);
       await fetchPendingOrders();
       alert(`Payment collected successfully via ${method.toUpperCase()}.`);
 
-      setSelectedOrderId(null);
-      setSelectedOrderStatus(null);
-      setSelectedCustomerId("");
-      setCustomerSearch("");
-      setShowNewCustomerForm(false);
-      setNewCustomer({ name: "", phone: "" });
-      setDiscountType("percent");
-      setDiscountValue(0);
-      setOrderDetails({
-        table_number: "",
-        notes: "",
-        payment_method: "cash"
-      });
-      setCart([]);
-      localStorage.removeItem("cart");
+      clearCurrentBill();
+      navigate("/menu");
     } catch (err) {
       console.error(err.response?.data || err);
 
@@ -451,8 +413,9 @@ function BillingPage() {
   };
 
   const closeGeneratedBill = () => {
-    setGeneratedBill(null);
-    navigate("/");
+    clearCurrentBill();
+    setShowPaymentModal(false);
+    navigate("/menu");
   };
 
   const modeLabel = selectedOrderId
