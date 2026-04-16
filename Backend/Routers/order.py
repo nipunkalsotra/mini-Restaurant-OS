@@ -105,6 +105,38 @@ def create_order(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/billing/pending", response_model=list[schemas.OrderDetailResponse])
+def get_pending_billing_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    orders = (
+        db.query(models.Order)
+        .join(models.Restaurant, models.Order.restaurant_id == models.Restaurant.restaurant_id)
+        .filter(
+            models.Restaurant.user_id == current_user.user_id,
+            models.Order.payment_status == PaymentStatus.unpaid,
+            models.Order.status.notin_([OrderStatus.completed, OrderStatus.cancelled])
+        )
+        .order_by(models.Order.created_at.desc())
+        .all()
+    )
+
+    response = []
+    for order in orders:
+        items = db.query(models.OrderItem).filter(
+            models.OrderItem.order_id == order.order_id
+        ).all()
+
+        order_response = schemas.OrderResponse.from_orm(order)
+        order_response.customer_name = order.customer.customer_name if order.customer else None
+
+        response.append(
+            schemas.OrderDetailResponse(order=order_response, items=items)
+        )
+
+    return response
 
 @router.get("", response_model=list[schemas.OrderResponse])
 def get_orders(
