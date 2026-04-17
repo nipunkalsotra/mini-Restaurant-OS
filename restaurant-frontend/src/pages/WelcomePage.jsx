@@ -127,8 +127,8 @@ function WelcomePage() {
           minHeight: "100vh",
           display: "grid",
           placeItems: "center",
-          background: "#f8fafc",
-          color: "#334155",
+          background: "var(--bg-tertiary)",
+          color: "var(--text-primary)",
           fontSize: "18px",
           fontWeight: 600,
         }}
@@ -316,10 +316,10 @@ function WelcomePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * index }}
                     style={{
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid var(--border-color)",
                       borderRadius: "18px",
                       padding: "18px",
-                      background: "#f8fafc",
+                      background: "var(--bg-tertiary)",
                     }}
                   >
                     <div style={moduleIconWrap}>{item.icon}</div>
@@ -328,7 +328,7 @@ function WelcomePage() {
                       style={{
                         fontWeight: 800,
                         fontSize: "17px",
-                        color: "#0f172a",
+                        color: "var(--text-primary)",
                         marginBottom: "8px",
                       }}
                     >
@@ -381,16 +381,16 @@ function WelcomePage() {
                       display: "flex",
                       gap: "14px",
                       alignItems: "flex-start",
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid var(--border-color)",
                       borderRadius: "16px",
                       padding: "16px",
-                      background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                      background: index % 2 === 0 ? "var(--bg-primary)" : "#f8fafc",
                     }}
                   >
                     <div style={stepNumberStyle}>{index + 1}</div>
                     <div
                       style={{
-                        color: "#334155",
+                        color: "var(--text-primary)",
                         fontSize: "15px",
                         lineHeight: 1.7,
                         paddingTop: "4px",
@@ -443,8 +443,8 @@ function WelcomePage() {
                     border: "1px dashed #cbd5e1",
                     borderRadius: "18px",
                     padding: "22px",
-                    color: "#64748b",
-                    background: "#f8fafc",
+                    color: "var(--text-secondary)",
+                    background: "var(--bg-tertiary)",
                     lineHeight: 1.8,
                   }}
                 >
@@ -457,7 +457,7 @@ function WelcomePage() {
                     <div
                       key={restaurant.restaurant_id}
                       style={{
-                        border: "1px solid #e2e8f0",
+                        border: "1px solid var(--border-color)",
                         borderRadius: "18px",
                         padding: "18px",
                         display: "flex",
@@ -465,7 +465,7 @@ function WelcomePage() {
                         alignItems: "center",
                         gap: "14px",
                         flexWrap: "wrap",
-                        background: "#ffffff",
+                        background: "var(--bg-primary)",
                       }}
                     >
                       <div style={{ display: "flex", gap: "14px", alignItems: "flex-start" }}>
@@ -490,7 +490,7 @@ function WelcomePage() {
                             style={{
                               fontSize: "17px",
                               fontWeight: 800,
-                              color: "#0f172a",
+                              color: "var(--text-primary)",
                               marginBottom: "5px",
                             }}
                           >
@@ -499,7 +499,7 @@ function WelcomePage() {
 
                           <div
                             style={{
-                              color: "#64748b",
+                              color: "var(--text-secondary)",
                               fontSize: "14px",
                               lineHeight: 1.7,
                             }}
@@ -570,7 +570,7 @@ function WelcomePage() {
                   background: "#f8fbff",
                   borderRadius: "16px",
                   padding: "18px",
-                  color: "#334155",
+                  color: "var(--text-primary)",
                   lineHeight: 1.8,
                   fontSize: "14px",
                   marginBottom: "18px",
@@ -603,7 +603,7 @@ function WelcomePage() {
                 style={{
                   fontSize: "20px",
                   fontWeight: 800,
-                  color: "#0f172a",
+                  color: "var(--text-primary)",
                   marginBottom: "14px",
                 }}
               >
@@ -618,7 +618,7 @@ function WelcomePage() {
                       display: "flex",
                       alignItems: "center",
                       gap: "12px",
-                      color: "#334155",
+                      color: "var(--text-primary)",
                       fontSize: "15px",
                     }}
                   >
@@ -639,7 +639,7 @@ function WelcomePage() {
                 style={{
                   fontSize: "20px",
                   fontWeight: 800,
-                  color: "#0f172a",
+                  color: "var(--text-primary)",
                   marginBottom: "12px",
                 }}
               >
@@ -723,7 +723,7 @@ const sectionTitle = {
   fontSize: "28px",
   fontWeight: 800,
   marginBottom: "10px",
-  color: "#0f172a",
+  color: "var(--text-primary)",
 };
 
 const sectionSub = {
@@ -734,8 +734,8 @@ const sectionSub = {
 };
 
 const cardStyle = {
-  background: "#ffffff",
-  border: "1px solid #e2e8f0",
+  background: "var(--bg-primary)",
+  border: "1px solid var(--border-color)",
   borderRadius: "20px",
   boxShadow: "0 12px 40px rgba(15, 23, 42, 0.06)",
 };
@@ -821,9 +821,9 @@ const moduleButton = {
 };
 
 const ghostButton = {
-  border: "1px solid #cbd5e1",
-  background: "#ffffff",
-  color: "#0f172a",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)",
   padding: "11px 14px",
   borderRadius: "12px",
   fontWeight: 700,

@@ -81,7 +81,7 @@ function SignupPage() {
                 style={{
                     width: "100%",
                     maxWidth: "430px",
-                    background: "#ffffff",
+                    background: "var(--bg-primary)",
                     borderRadius: "20px",
                     padding: "36px 30px",
                     boxShadow: "0 20px 50px rgba(15, 23, 42, 0.12)",
@@ -99,7 +99,7 @@ function SignupPage() {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            color: "#fff",
+                            color: "var(--bg-primary)",
                             fontSize: "24px",
                             fontWeight: "700",
                             boxShadow: "0 10px 25px rgba(37, 99, 235, 0.25)",
@@ -113,7 +113,7 @@ function SignupPage() {
                             margin: 0,
                             fontSize: "28px",
                             fontWeight: "700",
-                            color: "#0f172a",
+                            color: "var(--text-primary)",
                         }}
                     >
                         Create account
@@ -123,7 +123,7 @@ function SignupPage() {
                         style={{
                             marginTop: "8px",
                             marginBottom: 0,
-                            color: "#64748b",
+                            color: "var(--text-secondary)",
                             fontSize: "15px",
                         }}
                     >
@@ -157,7 +157,7 @@ function SignupPage() {
                                 marginBottom: "8px",
                                 fontSize: "14px",
                                 fontWeight: "600",
-                                color: "#334155",
+                                color: "var(--text-primary)",
                             }}
                         >
                             Full name
@@ -174,10 +174,10 @@ function SignupPage() {
                                 width: "100%",
                                 padding: "13px 14px",
                                 borderRadius: "12px",
-                                border: "1px solid #cbd5e1",
+                                border: "1px solid var(--border-color)",
                                 outline: "none",
                                 fontSize: "15px",
-                                background: "#f8fafc",
+                                background: "var(--bg-tertiary)",
                                 boxSizing: "border-box",
                             }}
                         />
@@ -191,7 +191,7 @@ function SignupPage() {
                                 marginBottom: "8px",
                                 fontSize: "14px",
                                 fontWeight: "600",
-                                color: "#334155",
+                                color: "var(--text-primary)",
                             }}
                         >
                             Email address
@@ -208,10 +208,10 @@ function SignupPage() {
                                 width: "100%",
                                 padding: "13px 14px",
                                 borderRadius: "12px",
-                                border: "1px solid #cbd5e1",
+                                border: "1px solid var(--border-color)",
                                 outline: "none",
                                 fontSize: "15px",
-                                background: "#f8fafc",
+                                background: "var(--bg-tertiary)",
                                 boxSizing: "border-box",
                             }}
                         />
@@ -225,7 +225,7 @@ function SignupPage() {
                                 marginBottom: "8px",
                                 fontSize: "14px",
                                 fontWeight: "600",
-                                color: "#334155",
+                                color: "var(--text-primary)",
                             }}
                         >
                             Password
@@ -242,10 +242,10 @@ function SignupPage() {
                                 width: "100%",
                                 padding: "13px 14px",
                                 borderRadius: "12px",
-                                border: "1px solid #cbd5e1",
+                                border: "1px solid var(--border-color)",
                                 outline: "none",
                                 fontSize: "15px",
-                                background: "#f8fafc",
+                                background: "var(--bg-tertiary)",
                                 boxSizing: "border-box",
                             }}
                         />
@@ -262,7 +262,7 @@ function SignupPage() {
                             background: loading
                                 ? "#93c5fd"
                                 : "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                            color: "#ffffff",
+                            color: "var(--bg-primary)",
                             fontSize: "15px",
                             fontWeight: "600",
                             cursor: loading ? "not-allowed" : "pointer",
@@ -280,7 +280,7 @@ function SignupPage() {
                     style={{
                         marginTop: "22px",
                         textAlign: "center",
-                        color: "#64748b",
+                        color: "var(--text-secondary)",
                         fontSize: "14px",
                     }}
                 >

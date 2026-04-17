@@ -49,7 +49,7 @@ function DateFilter({ onChange }) {
 
   return (
     <div style={{
-      background: "#fff",
+      background: "var(--bg-primary)",
       padding: "10px",
       borderRadius: "10px",
       boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
@@ -74,8 +74,8 @@ function DateFilter({ onChange }) {
               border: "none",
               cursor: "pointer",
               fontSize: "12px",
-              background: timeFilter === f.value ? "#3498db" : "#eee",
-              color: timeFilter === f.value ? "#fff" : "#333"
+              background: timeFilter === f.value ? "#3498db" : "var(--bg-tertiary)",
+              color: timeFilter === f.value ? "var(--bg-primary)" : "var(--text-primary)"
             }}
           >
             {f.label}
@@ -101,7 +101,7 @@ function DateFilter({ onChange }) {
             <div style={{
               marginTop: "8px",
               fontSize: "12px",
-              color: "#555"
+              color: "var(--text-secondary)"
             }}>
               {selectedDates.length === 1 && (
                 <>Selected: {selectedDates[0]}</>
@@ -123,7 +123,7 @@ function DateFilter({ onChange }) {
                 borderRadius: "6px",
                 border: "none",
                 background: "#e74c3c",
-                color: "#fff",
+                color: "var(--bg-primary)",
                 cursor: "pointer"
               }}
             >

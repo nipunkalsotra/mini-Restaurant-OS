@@ -184,7 +184,7 @@ function MenuPage({ cart, setCart }) {
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#f7f8fa",
+        background: "var(--bg-secondary)",
       }}
     >
       <div
@@ -195,10 +195,10 @@ function MenuPage({ cart, setCart }) {
       >
         <div
           style={{
-            background: "#fff",
+            background: "var(--bg-primary)",
             borderRadius: "18px",
             padding: "22px",
-            boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+            boxShadow: "var(--shadow-sm)",
             marginBottom: "20px",
           }}
         >
@@ -213,21 +213,21 @@ function MenuPage({ cart, setCart }) {
           >
             <div>
               <h1 style={{ margin: 0, fontSize: "30px" }}>🍽 Menu Dashboard</h1>
-              <p style={{ margin: "8px 0 0", color: "#666" }}>
+              <p style={{ margin: "8px 0 0", color: "var(--text-secondary)" }}>
                 Browse menu items, filter categories, and build orders faster.
               </p>
             </div>
 
             <div
               style={{
-                background: "#f8faff",
+                background: "var(--bg-tertiary)",
                 padding: "12px 16px",
                 borderRadius: "14px",
-                border: "1px solid #e8eefc",
+                border: "1px solid var(--border-color)",
                 minWidth: "220px",
               }}
             >
-              <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px" }}>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>
                 Cart Summary
               </div>
               <div style={{ fontWeight: 700, fontSize: "18px" }}>
@@ -343,10 +343,10 @@ function MenuPage({ cart, setCart }) {
               <div
                 key={item.menu_item_id}
                 style={{
-                  background: "#fff",
+                  background: "var(--bg-primary)",
                   borderRadius: "18px",
                   padding: "18px",
-                  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                  boxShadow: "var(--shadow-sm)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "10px",
@@ -360,14 +360,14 @@ function MenuPage({ cart, setCart }) {
                     gap: "10px",
                   }}
                 >
-                  <h3 style={{ margin: 0, fontSize: "20px", color: "#222" }}>
+                  <h3 style={{ margin: 0, fontSize: "20px", color: "var(--text-primary)" }}>
                     {item.item_name}
                   </h3>
 
                   <span
                     style={{
                       fontSize: "12px",
-                      background: "#eef3ff",
+                      background: "var(--bg-tertiary)",
                       color: "#335dff",
                       padding: "6px 10px",
                       borderRadius: "999px",
@@ -379,7 +379,7 @@ function MenuPage({ cart, setCart }) {
                   </span>
                 </div>
 
-                <div style={{ color: "#666", fontSize: "14px" }}>
+                <div style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
                   Freshly available for quick order billing.
                 </div>
 
@@ -387,7 +387,7 @@ function MenuPage({ cart, setCart }) {
                   style={{
                     fontSize: "24px",
                     fontWeight: 700,
-                    color: "#1f2937",
+                    color: "var(--text-primary)",
                     marginTop: "4px",
                   }}
                 >
@@ -403,7 +403,7 @@ function MenuPage({ cart, setCart }) {
                     border: "none",
                     borderRadius: "10px",
                     background: "#2ecc71",
-                    color: "#fff",
+                    color: "var(--bg-primary)",
                     cursor: "pointer",
                     fontWeight: "bold",
                     fontSize: "14px",
@@ -425,8 +425,8 @@ function MenuPage({ cart, setCart }) {
 const selectStyle = {
   padding: "12px 14px",
   borderRadius: "10px",
-  border: "1px solid #d7dce5",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
   fontSize: "14px",
   outline: "none",
 };
@@ -434,8 +434,8 @@ const selectStyle = {
 const inputStyle = {
   padding: "12px 14px",
   borderRadius: "10px",
-  border: "1px solid #d7dce5",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
   fontSize: "14px",
   outline: "none",
   width: "100%",
@@ -443,19 +443,19 @@ const inputStyle = {
 };
 
 const stateCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "22px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666",
+  boxShadow: "var(--shadow-sm)",
+  color: "var(--text-secondary)",
 };
 
 const getCategoryButtonStyle = (active) => ({
   padding: "8px 14px",
   borderRadius: "999px",
   border: "none",
-  background: active ? "#333" : "#eceff3",
-  color: active ? "#fff" : "#222",
+  background: active ? "var(--text-primary)" : "var(--bg-tertiary)",
+  color: active ? "var(--bg-primary)" : "var(--text-primary)",
   cursor: "pointer",
   fontWeight: 600,
 });

@@ -136,7 +136,7 @@ function CustomerDetailPage() {
           </div>
 
           <div style={highlightCardStyle}>
-            <div style={{ fontSize: "13px", color: "#666" }}>Customer ID</div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Customer ID</div>
             <div style={{ fontWeight: 700, fontSize: "22px" }}>
               #{customer.customer_id}
             </div>
@@ -181,7 +181,7 @@ function CustomerDetailPage() {
         >
           <div>
             <h2 style={{ margin: 0 }}>🧾 Order History</h2>
-            <p style={{ margin: "8px 0 0", color: "#666" }}>
+            <p style={{ margin: "8px 0 0", color: "var(--text-secondary)" }}>
               Click any order to open full order details.
             </p>
           </div>
@@ -271,15 +271,15 @@ function CustomerDetailPage() {
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#f7f8fa",
+  background: "var(--bg-secondary)",
   padding: "24px"
 };
 
 const headerCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "22px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  boxShadow: "var(--shadow-sm)",
   marginBottom: "20px"
 };
 
@@ -298,14 +298,14 @@ const titleStyle = {
 
 const subtitleStyle = {
   margin: "8px 0 0",
-  color: "#666"
+  color: "var(--text-secondary)"
 };
 
 const highlightCardStyle = {
-  background: "#f8faff",
+  background: "var(--bg-tertiary)",
   padding: "12px 16px",
   borderRadius: "14px",
-  border: "1px solid #e8eefc",
+  border: "1px solid var(--border-color)",
   minWidth: "180px"
 };
 
@@ -317,53 +317,53 @@ const summaryGridStyle = {
 };
 
 const summaryCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "18px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const summaryLabelStyle = {
   fontSize: "14px",
-  color: "#666",
+  color: "var(--text-secondary)",
   marginBottom: "8px"
 };
 
 const summaryValueStyle = {
   fontSize: "22px",
   fontWeight: 700,
-  color: "#222"
+  color: "var(--text-primary)"
 };
 
 const cardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const emptyCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666"
+  boxShadow: "var(--shadow-sm)",
+  color: "var(--text-secondary)"
 };
 
 const emptyInnerStyle = {
-  background: "#fafbfc",
-  border: "1px solid #eef1f5",
+  background: "var(--bg-tertiary)",
+  border: "1px solid var(--border-color)",
   borderRadius: "12px",
   padding: "16px",
-  color: "#666"
+  color: "var(--text-secondary)"
 };
 
 const backButtonStyle = {
   padding: "8px 12px",
   borderRadius: "8px",
   border: "none",
-  background: "#ecf0f1",
-  color: "#333",
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
   fontWeight: "bold",
   cursor: "pointer"
 };
@@ -379,36 +379,36 @@ const badgeStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  background: "#fff"
+  background: "var(--bg-primary)"
 };
 
 const thStyle = {
   textAlign: "left",
   padding: "14px",
-  background: "#f8fafc",
+  background: "var(--bg-tertiary)",
   borderBottom: "1px solid #e8edf3",
   fontSize: "14px",
-  color: "#444",
+  color: "var(--text-secondary)",
   whiteSpace: "nowrap"
 };
 
 const tdStyle = {
   padding: "14px",
-  borderBottom: "1px solid #eef1f5",
-  color: "#222",
+  borderBottom: "1px solid var(--border-color)",
+  color: "var(--text-primary)",
   whiteSpace: "nowrap"
 };
 
 const tfootLabelStyle = {
   padding: "14px",
   fontWeight: "bold",
-  background: "#fafbfc"
+  background: "var(--bg-tertiary)"
 };
 
 const tfootValueStyle = {
   padding: "14px",
   fontWeight: "bold",
-  background: "#fafbfc"
+  background: "var(--bg-tertiary)"
 };
 
 export default CustomerDetailPage;

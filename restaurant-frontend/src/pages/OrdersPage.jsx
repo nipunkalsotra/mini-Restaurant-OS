@@ -196,16 +196,16 @@ function OrdersPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#f7f8fa",
+        background: "var(--bg-secondary)",
         padding: "24px"
       }}
     >
       <div
         style={{
-          background: "#fff",
+          background: "var(--bg-primary)",
           borderRadius: "18px",
           padding: "22px",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+          boxShadow: "var(--shadow-sm)",
           marginBottom: "20px"
         }}
       >
@@ -220,13 +220,13 @@ function OrdersPage() {
         >
           <div>
             <h1 style={{ margin: 0, fontSize: "30px" }}>📦 Orders Dashboard</h1>
-            <p style={{ margin: "8px 0 0", color: "#666" }}>
+            <p style={{ margin: "8px 0 0", color: "var(--text-secondary)" }}>
               Track order status, payment progress, and order activity in one place.
             </p>
           </div>
 
           <div style={highlightCardStyle}>
-            <div style={{ fontSize: "13px", color: "#666" }}>Current View</div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Current View</div>
             <div style={{ fontWeight: 700, fontSize: "18px" }}>
               {selectedStatus.toUpperCase()} Orders
             </div>
@@ -267,10 +267,10 @@ function OrdersPage() {
 
       <div
         style={{
-          background: "#fff",
+          background: "var(--bg-primary)",
           borderRadius: "18px",
           padding: "20px",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+          boxShadow: "var(--shadow-sm)",
           marginBottom: "20px"
         }}
       >
@@ -305,8 +305,8 @@ function OrdersPage() {
                   borderRadius: "999px",
                   border: "none",
                   cursor: "pointer",
-                  background: selectedStatus === status ? "#333" : "#eceff3",
-                  color: selectedStatus === status ? "#fff" : "#222",
+                  background: selectedStatus === status ? "var(--text-primary)" : "var(--bg-tertiary)",
+                  color: selectedStatus === status ? "var(--bg-primary)" : "var(--text-primary)",
                   fontWeight: 600
                 }}
               >
@@ -337,8 +337,8 @@ function OrdersPage() {
                 cursor: "pointer",
                 padding: "18px",
                 borderRadius: "18px",
-                background: "#fff",
-                boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                background: "var(--bg-primary)",
+                boxShadow: "var(--shadow-sm)",
                 borderTop: `5px solid ${getStatusColor(o.status)}`,
                 transition: "0.2s ease"
               }}
@@ -353,7 +353,7 @@ function OrdersPage() {
               >
                 <div>
                   <h3 style={{ margin: 0 }}>🧾 Order #{o.order_id}</h3>
-                  <p style={{ margin: "8px 0 0", color: "#666", fontSize: "14px" }}>
+                  <p style={{ margin: "8px 0 0", color: "var(--text-secondary)", fontSize: "14px" }}>
                     {o.customer_name || "Walk-in Customer"}
                   </p>
                 </div>
@@ -361,7 +361,7 @@ function OrdersPage() {
                 <div
                   style={{
                     fontSize: "12px",
-                    background: "#f8faff",
+                    background: "var(--bg-tertiary)",
                     color: "#335dff",
                     padding: "6px 10px",
                     borderRadius: "999px",
@@ -418,11 +418,11 @@ function OrdersPage() {
                   style={{
                     marginTop: "12px",
                     padding: "10px 12px",
-                    background: "#fafbfc",
-                    border: "1px solid #eef1f5",
+                    background: "var(--bg-tertiary)",
+                    border: "1px solid var(--border-color)",
                     borderRadius: "10px",
                     fontSize: "13px",
-                    color: "#555"
+                    color: "var(--text-secondary)"
                   }}
                 >
                   📝 {o.notes}
@@ -439,7 +439,7 @@ function OrdersPage() {
                     marginTop: "14px",
                     padding: "10px 12px",
                     background: "#e74c3c",
-                    color: "#fff",
+                    color: "var(--bg-primary)",
                     border: "none",
                     borderRadius: "10px",
                     cursor: "pointer",
@@ -458,10 +458,10 @@ function OrdersPage() {
 }
 
 const highlightCardStyle = {
-  background: "#f8faff",
+  background: "var(--bg-tertiary)",
   padding: "12px 16px",
   borderRadius: "14px",
-  border: "1px solid #e8eefc",
+  border: "1px solid var(--border-color)",
   minWidth: "220px"
 };
 
@@ -473,41 +473,41 @@ const summaryGridStyle = {
 };
 
 const summaryCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "18px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const summaryLabelStyle = {
   fontSize: "14px",
-  color: "#666",
+  color: "var(--text-secondary)",
   marginBottom: "8px"
 };
 
 const summaryValueStyle = {
   fontSize: "28px",
   fontWeight: 700,
-  color: "#222"
+  color: "var(--text-primary)"
 };
 
 const inputStyle = {
   width: "100%",
   padding: "12px 14px",
   borderRadius: "10px",
-  border: "1px solid #d7dce5",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
   fontSize: "14px",
   outline: "none",
   boxSizing: "border-box"
 };
 
 const emptyCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666"
+  boxShadow: "var(--shadow-sm)",
+  color: "var(--text-secondary)"
 };
 
 const infoRowStyle = {
@@ -518,7 +518,7 @@ const infoRowStyle = {
 };
 
 const infoLabelStyle = {
-  color: "#666",
+  color: "var(--text-secondary)",
   fontSize: "14px"
 };
 

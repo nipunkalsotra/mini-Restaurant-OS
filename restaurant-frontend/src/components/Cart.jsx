@@ -81,7 +81,7 @@ function Cart({ cart, setCart, onCheckout }) {
       style={{
         width: "360px",
         padding: "20px",
-        background: "#f7f8fa",
+        background: "var(--bg-secondary)",
         position: "sticky",
         top: 0,
         height: "100vh",
@@ -91,9 +91,9 @@ function Cart({ cart, setCart, onCheckout }) {
       <div
         style={{
           height: "100%",
-          background: "#fff",
+          background: "var(--bg-primary)",
           borderRadius: "20px",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+          boxShadow: "var(--shadow-sm)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden"
@@ -102,7 +102,7 @@ function Cart({ cart, setCart, onCheckout }) {
         <div
           style={{
             padding: "18px 18px 14px",
-            borderBottom: "1px solid #eef1f5"
+            borderBottom: "1px solid var(--border-color)"
           }}
         >
           <div
@@ -112,7 +112,7 @@ function Cart({ cart, setCart, onCheckout }) {
               alignItems: "center"
             }}
           >
-            <h2 style={{ margin: 0 }}>🛒 Cart</h2>
+            <h2 style={{ margin: 0, color: "var(--text-primary)" }}>🛒 Cart</h2>
 
             {cart.length > 0 && (
               <button
@@ -134,7 +134,13 @@ function Cart({ cart, setCart, onCheckout }) {
             )}
           </div>
 
-          <p style={{ margin: "8px 0 0", color: "#666", fontSize: "14px" }}>
+          <p
+            style={{
+              margin: "8px 0 0",
+              color: "var(--text-secondary)",
+              fontSize: "14px"
+            }}
+          >
             {totalItems} item{totalItems !== 1 ? "s" : ""} added
           </p>
         </div>
@@ -149,12 +155,12 @@ function Cart({ cart, setCart, onCheckout }) {
           {cart.length === 0 ? (
             <div
               style={{
-                background: "#fafafa",
-                border: "1px dashed #d8dee8",
+                background: "var(--bg-tertiary)",
+                border: "1px dashed var(--border-color)",
                 borderRadius: "14px",
                 padding: "20px",
                 textAlign: "center",
-                color: "#777"
+                color: "var(--text-secondary)"
               }}
             >
               No items in cart
@@ -167,8 +173,8 @@ function Cart({ cart, setCart, onCheckout }) {
                   marginBottom: "14px",
                   padding: "14px",
                   borderRadius: "14px",
-                  background: "#fafafa",
-                  border: "1px solid #edf0f4"
+                  background: "var(--bg-tertiary)",
+                  border: "1px solid var(--border-color)"
                 }}
               >
                 <div
@@ -179,15 +185,21 @@ function Cart({ cart, setCart, onCheckout }) {
                     marginBottom: "8px"
                   }}
                 >
-                  <div style={{ fontWeight: "bold", color: "#222" }}>
+                  <div style={{ fontWeight: "bold", color: "var(--text-primary)" }}>
                     {item.item_name}
                   </div>
-                  <div style={{ fontWeight: 700 }}>
+                  <div style={{ fontWeight: 700, color: "var(--text-primary)" }}>
                     ₹{(item.item_price * item.quantity).toFixed(2)}
                   </div>
                 </div>
 
-                <div style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "var(--text-secondary)",
+                    marginBottom: "10px"
+                  }}
+                >
                   ₹{item.item_price} × {item.quantity}
                 </div>
 
@@ -217,7 +229,8 @@ function Cart({ cart, setCart, onCheckout }) {
                       style={{
                         minWidth: "28px",
                         textAlign: "center",
-                        fontWeight: 700
+                        fontWeight: 700,
+                        color: "var(--text-primary)"
                       }}
                     >
                       {item.quantity}
@@ -246,14 +259,14 @@ function Cart({ cart, setCart, onCheckout }) {
         <div
           style={{
             padding: "18px",
-            borderTop: "1px solid #eef1f5",
-            background: "#fff"
+            borderTop: "1px solid var(--border-color)",
+            background: "var(--bg-primary)"
           }}
         >
           <div
             style={{
-              background: "#f8fbff",
-              border: "1px solid #e5eef8",
+              background: "var(--bg-tertiary)",
+              border: "1px solid var(--border-color)",
               borderRadius: "14px",
               padding: "14px",
               marginBottom: "14px"
@@ -264,7 +277,7 @@ function Cart({ cart, setCart, onCheckout }) {
                 display: "flex",
                 justifyContent: "space-between",
                 marginBottom: "8px",
-                color: "#555"
+                color: "var(--text-secondary)"
               }}
             >
               <span>Items</span>
@@ -277,7 +290,7 @@ function Cart({ cart, setCart, onCheckout }) {
                 justifyContent: "space-between",
                 fontWeight: 700,
                 fontSize: "18px",
-                color: "#222"
+                color: "var(--text-primary)"
               }}
             >
               <span>Total</span>
@@ -291,7 +304,7 @@ function Cart({ cart, setCart, onCheckout }) {
               padding: "14px",
               width: "100%",
               background: "#2ecc71",
-              color: "#fff",
+              color: "var(--bg-primary)",
               border: "none",
               borderRadius: "12px",
               cursor: "pointer",
@@ -312,8 +325,9 @@ const qtyButtonStyle = {
   width: "32px",
   height: "32px",
   borderRadius: "8px",
-  border: "1px solid #d7dce5",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)",
   cursor: "pointer",
   fontWeight: "bold",
   fontSize: "16px"

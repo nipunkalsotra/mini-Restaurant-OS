@@ -136,7 +136,7 @@ function KitchenPage() {
           </div>
 
           <div style={highlightCardStyle}>
-            <div style={{ fontSize: "13px", color: "#666" }}>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
               Active Orders
             </div>
             <div style={{ fontSize: "22px", fontWeight: "bold" }}>
@@ -183,7 +183,7 @@ function KitchenPage() {
                         <h3 style={{ margin: 0 }}>
                           🧾 Order #{o.order.order_id}
                         </h3>
-                        <p style={{ margin: "4px 0", color: "#666" }}>
+                        <p style={{ margin: "4px 0", color: "var(--text-secondary)" }}>
                           🍽 Table: {o.order.table_number || "N/A"}
                         </p>
                       </div>
@@ -255,15 +255,15 @@ function KitchenPage() {
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#f7f8fa",
+  background: "var(--bg-secondary)",
   padding: "24px"
 };
 
 const headerCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  boxShadow: "var(--shadow-sm)",
   marginBottom: "20px"
 };
 
@@ -274,13 +274,13 @@ const headerRowStyle = {
 };
 
 const titleStyle = { margin: 0, fontSize: "30px" };
-const subtitleStyle = { margin: "6px 0", color: "#666" };
+const subtitleStyle = { margin: "6px 0", color: "var(--text-secondary)" };
 
 const highlightCardStyle = {
-  background: "#f8faff",
+  background: "var(--bg-tertiary)",
   padding: "10px 16px",
   borderRadius: "12px",
-  border: "1px solid #e8eefc"
+  border: "1px solid var(--border-color)"
 };
 
 const searchStyle = {
@@ -311,17 +311,17 @@ const columnHeaderStyle = {
 };
 
 const countBadge = {
-  background: "#eef3ff",
+  background: "var(--bg-tertiary)",
   padding: "5px 10px",
   borderRadius: "999px",
   fontWeight: "bold"
 };
 
 const cardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "16px",
   padding: "15px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const cardHeader = {
@@ -356,22 +356,22 @@ const btnStyle = {
   padding: "8px",
   border: "none",
   borderRadius: "8px",
-  color: "#fff",
+  color: "var(--bg-primary)",
   cursor: "pointer",
   fontWeight: "bold"
 };
 
 const emptyCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   padding: "20px",
   borderRadius: "16px"
 };
 
 const emptyInnerStyle = {
-  background: "#fafbfc",
+  background: "var(--bg-tertiary)",
   padding: "12px",
   borderRadius: "10px",
-  color: "#777"
+  color: "var(--text-secondary)"
 };
 
 export default KitchenPage;

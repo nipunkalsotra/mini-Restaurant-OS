@@ -93,7 +93,7 @@ function OrderDetailPage() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#f7f8fa",
+          background: "var(--bg-secondary)",
           padding: "24px"
         }}
       >
@@ -107,7 +107,7 @@ function OrderDetailPage() {
       <div
         style={{
           minHeight: "100vh",
-          background: "#f7f8fa",
+          background: "var(--bg-secondary)",
           padding: "24px"
         }}
       >
@@ -120,16 +120,16 @@ function OrderDetailPage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#f7f8fa",
+        background: "var(--bg-secondary)",
         padding: "24px"
       }}
     >
       <div
         style={{
-          background: "#fff",
+          background: "var(--bg-primary)",
           borderRadius: "18px",
           padding: "22px",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+          boxShadow: "var(--shadow-sm)",
           marginBottom: "20px"
         }}
       >
@@ -151,14 +151,14 @@ function OrderDetailPage() {
               🧾 Order #{order.order_id}
             </h1>
 
-            <p style={{ margin: "8px 0 0", color: "#666" }}>
+            <p style={{ margin: "8px 0 0", color: "var(--text-secondary)" }}>
               {order.customer_name || "Walk-in Customer"} •{" "}
               {new Date(order.created_at).toLocaleString()}
             </p>
           </div>
 
           <div style={highlightCardStyle}>
-            <div style={{ fontSize: "13px", color: "#666" }}>Order Total</div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Order Total</div>
             <div style={{ fontWeight: 700, fontSize: "22px" }}>
               ₹{Number(order.total_amount || 0).toFixed(2)}
             </div>
@@ -240,10 +240,10 @@ function OrderDetailPage() {
               style={{
                 marginTop: "16px",
                 padding: "12px 14px",
-                background: "#fafbfc",
-                border: "1px solid #eef1f5",
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
                 borderRadius: "12px",
-                color: "#555"
+                color: "var(--text-secondary)"
               }}
             >
               <strong>📝 Notes</strong>
@@ -323,7 +323,7 @@ function InfoRow({ label, value }) {
   return (
     <div style={infoRowStyle}>
       <span style={infoLabelStyle}>{label}</span>
-      <span style={{ fontWeight: 600, color: "#222", textTransform: "capitalize" }}>
+      <span style={{ fontWeight: 600, color: "var(--text-primary)", textTransform: "capitalize" }}>
         {value}
       </span>
     </div>
@@ -354,33 +354,33 @@ const gridStyle = {
 };
 
 const cardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const emptyCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666"
+  boxShadow: "var(--shadow-sm)",
+  color: "var(--text-secondary)"
 };
 
 const emptyInnerStyle = {
-  background: "#fafbfc",
-  border: "1px solid #eef1f5",
+  background: "var(--bg-tertiary)",
+  border: "1px solid var(--border-color)",
   borderRadius: "12px",
   padding: "16px",
-  color: "#666"
+  color: "var(--text-secondary)"
 };
 
 const highlightCardStyle = {
-  background: "#f8faff",
+  background: "var(--bg-tertiary)",
   padding: "12px 16px",
   borderRadius: "14px",
-  border: "1px solid #e8eefc",
+  border: "1px solid var(--border-color)",
   minWidth: "220px"
 };
 
@@ -392,22 +392,22 @@ const summaryGridStyle = {
 };
 
 const summaryCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "18px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const summaryLabelStyle = {
   fontSize: "14px",
-  color: "#666",
+  color: "var(--text-secondary)",
   marginBottom: "8px"
 };
 
 const summaryValueStyle = {
   fontSize: "24px",
   fontWeight: 700,
-  color: "#222",
+  color: "var(--text-primary)",
   textTransform: "capitalize"
 };
 
@@ -428,8 +428,8 @@ const backButtonStyle = {
   padding: "8px 12px",
   borderRadius: "8px",
   border: "none",
-  background: "#ecf0f1",
-  color: "#333",
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
   fontWeight: "bold",
   cursor: "pointer"
 };
@@ -448,12 +448,12 @@ const infoRowStyle = {
 };
 
 const infoLabelStyle = {
-  color: "#666",
+  color: "var(--text-secondary)",
   fontSize: "14px"
 };
 
 const billCardStyle = {
-  background: "#f9fbff",
+  background: "var(--bg-tertiary)",
   border: "1px solid #e6eefb",
   borderRadius: "14px",
   padding: "16px"
@@ -462,35 +462,35 @@ const billCardStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  background: "#fff",
+  background: "var(--bg-primary)",
   overflow: "hidden"
 };
 
 const thStyle = {
   textAlign: "left",
   padding: "14px",
-  background: "#f8fafc",
+  background: "var(--bg-tertiary)",
   borderBottom: "1px solid #e8edf3",
   fontSize: "14px",
-  color: "#444"
+  color: "var(--text-secondary)"
 };
 
 const tdStyle = {
   padding: "14px",
-  borderBottom: "1px solid #eef1f5",
-  color: "#222"
+  borderBottom: "1px solid var(--border-color)",
+  color: "var(--text-primary)"
 };
 
 const tfootLabelStyle = {
   padding: "14px",
   fontWeight: "bold",
-  background: "#fafbfc"
+  background: "var(--bg-tertiary)"
 };
 
 const tfootValueStyle = {
   padding: "14px",
   fontWeight: "bold",
-  background: "#fafbfc"
+  background: "var(--bg-tertiary)"
 };
 
 export default OrderDetailPage;

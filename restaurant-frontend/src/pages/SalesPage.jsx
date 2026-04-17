@@ -192,7 +192,7 @@ function SalesPage() {
   };
 
   return (
-    <div style={{ padding: "20px", background: "#f7f8fa", minHeight: "100vh" }}>
+    <div style={{ padding: "20px", background: "var(--bg-secondary)", minHeight: "100vh" }}>
       <div
         style={{
           display: "flex",
@@ -203,7 +203,7 @@ function SalesPage() {
       >
         <h1 style={{ margin: 0 }}>📊 Sales Dashboard</h1>
         {isSalesLoading && (
-          <span style={{ color: "#666", fontSize: "14px" }}>
+          <span style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
             Updating sales data...
           </span>
         )}
@@ -217,7 +217,7 @@ function SalesPage() {
 
       <DateFilter onChange={setDateFilter} />
 
-      <h3 style={{ marginBottom: "8px", color: "#666" }}>
+      <h3 style={{ marginBottom: "8px", color: "var(--text-secondary)" }}>
         Showing:{" "}
         {dateFilter.startDate
           ? `${dateFilter.startDate} → ${dateFilter.endDate || ""}`
@@ -225,7 +225,7 @@ function SalesPage() {
       </h3>
 
       {comparisonLabel && (
-        <p style={{ marginTop: 0, marginBottom: "20px", color: "#888" }}>
+        <p style={{ marginTop: 0, marginBottom: "20px", color: "var(--text-secondary)" }}>
           Analytics comparison mode: <strong>{comparisonLabel}</strong>
         </p>
       )}
@@ -640,7 +640,7 @@ function MetricCard({ title, value, color, subtext }) {
   return (
     <div
       style={{
-        background: "#fafafa",
+        background: "var(--bg-tertiary)",
         borderRadius: "12px",
         padding: "14px",
         border: "1px solid #eee"
@@ -657,7 +657,7 @@ function MetricCard({ title, value, color, subtext }) {
       >
         {value}
       </p>
-      <p style={{ margin: 0, color: "#777", fontSize: "13px", lineHeight: 1.5 }}>
+      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
         {subtext}
       </p>
     </div>
@@ -665,23 +665,23 @@ function MetricCard({ title, value, color, subtext }) {
 }
 
 const cardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "16px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const chartCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "16px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const cardTitle = {
   fontSize: "18px",
   marginBottom: "12px",
-  color: "#444"
+  color: "var(--text-secondary)"
 };
 
 const cardValue = {
@@ -691,7 +691,7 @@ const cardValue = {
 
 const badgeStyle = {
   fontSize: "12px",
-  background: "#eef3ff",
+  background: "var(--bg-tertiary)",
   color: "#335dff",
   padding: "6px 10px",
   borderRadius: "999px",

@@ -20,15 +20,18 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        background: "#fff"
+        background: "var(--bg-primary)",
+        color: "var(--text-primary)"
       }}
     >
       <div
         style={{
           padding: "16px",
-          borderBottom: "1px solid #eee",
+          borderBottom: "1px solid var(--border-color)",
           fontWeight: "bold",
-          fontSize: "18px"
+          fontSize: "18px",
+          color: "var(--text-primary)",
+          background: "var(--bg-primary)"
         }}
       >
         🕓 Pending Payments
@@ -44,8 +47,11 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
             width: "100%",
             padding: "10px 12px",
             borderRadius: "8px",
-            border: "1px solid #ccc",
-            outline: "none"
+            border: "1px solid var(--border-color)",
+            outline: "none",
+            background: "var(--bg-tertiary)",
+            color: "var(--text-primary)",
+            boxSizing: "border-box"
           }}
         />
       </div>
@@ -54,11 +60,13 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
         style={{
           margin: "0 12px 12px",
           padding: "12px",
-          background: "#fff4cc",
+          background: "var(--bg-tertiary)",
           borderRadius: "12px",
           fontWeight: "bold",
           textAlign: "center",
-          border: "1px solid #f1d97a"
+          border: "1px solid var(--border-color)",
+          color: "var(--text-primary)",
+          boxShadow: "var(--shadow-sm)"
         }}
       >
         💰 ₹{totalPendingAmount.toFixed(2)} Pending
@@ -75,7 +83,9 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
         }}
       >
         {filteredOrders.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#777" }}>No matching orders</p>
+          <p style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+            No matching orders
+          </p>
         ) : (
           filteredOrders.map((o) => {
             const isSelected = Number(selectedOrderId) === Number(o.order.order_id);
@@ -85,18 +95,21 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
                 key={o.order.order_id}
                 onClick={() => onSelectOrder(o)}
                 style={{
-                  background: isSelected ? "#eaf4ff" : "#fff",
+                  background: isSelected ? "var(--bg-secondary)" : "var(--bg-primary)",
                   borderRadius: "14px",
                   padding: "14px",
-                  border: isSelected ? "2px solid #3498db" : "1px solid #eee",
+                  border: isSelected
+                    ? "2px solid #3498db"
+                    : "1px solid var(--border-color)",
                   boxShadow: isSelected
                     ? "0 6px 16px rgba(52,152,219,0.18)"
-                    : "0 2px 10px rgba(0,0,0,0.06)",
+                    : "var(--shadow-sm)",
                   display: "flex",
                   flexDirection: "column",
                   gap: "8px",
                   cursor: "pointer",
-                  transition: "0.2s ease"
+                  transition: "0.2s ease",
+                  color: "var(--text-primary)"
                 }}
               >
                 <div
@@ -104,14 +117,20 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
                     display: "flex",
                     justifyContent: "space-between",
                     fontWeight: "bold",
-                    fontSize: "15px"
+                    fontSize: "15px",
+                    color: "var(--text-primary)"
                   }}
                 >
                   <span>Order #{o.order.order_id}</span>
                   <span>₹{Number(o.order.total_amount || 0).toFixed(2)}</span>
                 </div>
 
-                <div style={{ fontSize: "13px", color: "#555" }}>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-secondary)"
+                  }}
+                >
                   Table: {o.order.table_number || "N/A"} |{" "}
                   {o.order.customer_name || "Walk-in"}
                 </div>
@@ -119,11 +138,11 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
                 <div
                   style={{
                     fontSize: "13px",
-                    color: "#333",
-                    background: "#fafafa",
+                    color: "var(--text-primary)",
+                    background: "var(--bg-tertiary)",
                     padding: "8px",
                     borderRadius: "8px",
-                    border: "1px solid #f0f0f0"
+                    border: "1px solid var(--border-color)"
                   }}
                 >
                   {o.items?.map((i) => (
@@ -137,7 +156,7 @@ function PendingOrdersPanel({ pendingOrders, onSelectOrder, selectedOrderId }) {
                   <div
                     style={{
                       fontSize: "12px",
-                      color: "#3498db",
+                      color: "#4da3ff",
                       fontWeight: "bold"
                     }}
                   >

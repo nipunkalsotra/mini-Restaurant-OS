@@ -28,7 +28,7 @@ function Sidebar() {
 
   const activeStyle = {
     background: "#00bcd4",
-    color: "#222",
+    color: "var(--text-primary)",
   };
 
   const handleLogout = () => {

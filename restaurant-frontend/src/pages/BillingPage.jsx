@@ -427,25 +427,26 @@ function BillingPage({ cart, setCart }) {
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#f5f6fa"
+        background: "var(--bg-secondary)",
+        color: "var(--text-primary)"
       }}
     >
       <div
         style={{
           flex: 1,
           padding: "20px",
-          borderRight: "1px solid #ddd",
-          background: "#fff",
+          borderRight: "1px solid var(--border-color)",
+          background: "var(--bg-primary)",
           overflowY: "auto"
         }}
       >
         <div style={{ marginBottom: "16px" }}>
-          <h2 style={{ margin: 0 }}>🧾 Order Summary</h2>
-          <p style={{ color: "#666", marginTop: "6px" }}>{modeLabel}</p>
+          <h2 style={{ margin: 0, color: "var(--text-primary)" }}>🧾 Order Summary</h2>
+          <p style={{ color: "var(--text-secondary)", marginTop: "6px" }}>{modeLabel}</p>
         </div>
 
         {cart.length === 0 ? (
-          <p>No items in cart</p>
+          <p style={{ color: "var(--text-secondary)" }}>No items in cart</p>
         ) : (
           <>
             {cart.map((item) => (
@@ -454,9 +455,9 @@ function BillingPage({ cart, setCart }) {
                 style={{
                   marginBottom: "12px",
                   padding: "12px",
-                  background: "#fafafa",
+                  background: "var(--bg-tertiary)",
                   borderRadius: "10px",
-                  border: "1px solid #eee"
+                  border: "1px solid var(--border-color)"
                 }}
               >
                 <div
@@ -464,7 +465,8 @@ function BillingPage({ cart, setCart }) {
                     display: "flex",
                     justifyContent: "space-between",
                     marginBottom: "8px",
-                    fontWeight: 600
+                    fontWeight: 600,
+                    color: "var(--text-primary)"
                   }}
                 >
                   <div>{item.item_name}</div>
@@ -485,7 +487,14 @@ function BillingPage({ cart, setCart }) {
                     >
                       −
                     </button>
-                    <span style={{ minWidth: "24px", textAlign: "center" }}>
+                    <span
+                      style={{
+                        minWidth: "24px",
+                        textAlign: "center",
+                        color: "var(--text-primary)",
+                        fontWeight: 600
+                      }}
+                    >
                       {item.quantity}
                     </span>
                     <button
@@ -510,22 +519,18 @@ function BillingPage({ cart, setCart }) {
               style={{
                 marginTop: "20px",
                 padding: "14px",
-                background: "#fff8e6",
+                background: "var(--bg-tertiary)",
                 borderRadius: "12px",
-                border: "1px solid #f1d97a"
+                border: "1px solid var(--border-color)"
               }}
             >
-              <h4 style={{ margin: "0 0 10px 0" }}>💸 Discount</h4>
+              <h4 style={{ margin: "0 0 10px 0", color: "var(--text-primary)" }}>💸 Discount</h4>
 
               <div style={{ display: "flex", gap: "10px" }}>
                 <select
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value)}
-                  style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc"
-                  }}
+                  style={selectStyle}
                 >
                   <option value="percent">%</option>
                   <option value="amount">₹</option>
@@ -538,10 +543,9 @@ function BillingPage({ cart, setCart }) {
                   onChange={(e) => setDiscountValue(Number(e.target.value) || 0)}
                   placeholder="Enter discount"
                   style={{
+                    ...inputStyle,
                     flex: 1,
-                    padding: "10px",
-                    borderRadius: "8px",
-                    border: "1px solid #ccc"
+                    marginTop: 0
                   }}
                 />
               </div>
@@ -551,16 +555,16 @@ function BillingPage({ cart, setCart }) {
               style={{
                 marginTop: "20px",
                 padding: "16px",
-                background: "#f9fbff",
+                background: "var(--bg-tertiary)",
                 borderRadius: "12px",
-                border: "1px solid #e6eefb"
+                border: "1px solid var(--border-color)"
               }}
             >
               <BillRow label="Subtotal" value={`₹${subtotal.toFixed(2)}`} />
               <BillRow label="Discount" value={`- ₹${discountAmount.toFixed(2)}`} />
               <BillRow label="Taxable Amount" value={`₹${taxableAmount.toFixed(2)}`} />
               <BillRow label={`Tax (${TAX_RATE}%)`} value={`₹${taxAmount.toFixed(2)}`} />
-              <hr style={{ margin: "12px 0" }} />
+              <hr style={{ margin: "12px 0", border: 0, borderTop: "1px solid var(--border-color)" }} />
               <BillRow
                 label="Grand Total"
                 value={`₹${grandTotal.toFixed(2)}`}
@@ -575,24 +579,24 @@ function BillingPage({ cart, setCart }) {
         style={{
           flex: 1,
           padding: "20px",
-          borderRight: "1px solid #ddd",
-          background: "#fff",
+          borderRight: "1px solid var(--border-color)",
+          background: "var(--bg-primary)",
           overflowY: "auto"
         }}
       >
-        <h2 style={{ marginTop: 0 }}>💳 Billing</h2>
+        <h2 style={{ marginTop: 0, color: "var(--text-primary)" }}>💳 Billing</h2>
 
         <div
           style={{
             marginBottom: "16px",
             padding: "12px",
             borderRadius: "10px",
-            background: selectedOrderId ? "#eaf4ff" : "#f8f8f8",
-            border: "1px solid #e5e5e5"
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border-color)"
           }}
         >
-          <strong>{modeLabel}</strong>
-          <div style={{ marginTop: "6px", fontSize: "14px", color: "#666" }}>
+          <strong style={{ color: "var(--text-primary)" }}>{modeLabel}</strong>
+          <div style={{ marginTop: "6px", fontSize: "14px", color: "var(--text-secondary)" }}>
             {selectedCustomer
               ? `Customer: ${selectedCustomer.customer_name} (${selectedCustomer.customer_phone || "No phone"})`
               : "Customer: Walk-in / Not selected"}
@@ -611,9 +615,10 @@ function BillingPage({ cart, setCart }) {
           style={{
             maxHeight: "180px",
             overflowY: "auto",
-            border: "1px solid #ddd",
+            border: "1px solid var(--border-color)",
             borderRadius: "8px",
-            marginBottom: "12px"
+            marginBottom: "12px",
+            background: "var(--bg-tertiary)"
           }}
         >
           <div
@@ -621,8 +626,10 @@ function BillingPage({ cart, setCart }) {
             style={{
               padding: "10px",
               cursor: "pointer",
-              background: selectedCustomerId === "" ? "#eee" : "#fff",
-              borderBottom: "1px solid #f2f2f2"
+              background:
+                selectedCustomerId === "" ? "var(--bg-secondary)" : "var(--bg-primary)",
+              color: "var(--text-primary)",
+              borderBottom: "1px solid var(--border-color)"
             }}
           >
             Walk-in Customer
@@ -638,11 +645,12 @@ function BillingPage({ cart, setCart }) {
               style={{
                 padding: "10px",
                 cursor: "pointer",
+                color: "var(--text-primary)",
                 background:
                   Number(selectedCustomerId) === Number(c.customer_id)
-                    ? "#dff0ff"
-                    : "#fff",
-                borderBottom: "1px solid #f7f7f7"
+                    ? "var(--bg-secondary)"
+                    : "var(--bg-primary)",
+                borderBottom: "1px solid var(--border-color)"
               }}
             >
               {c.customer_name} {c.customer_phone ? `(${c.customer_phone})` : ""}
@@ -662,9 +670,9 @@ function BillingPage({ cart, setCart }) {
             style={{
               marginTop: "12px",
               padding: "12px",
-              border: "1px solid #eee",
+              border: "1px solid var(--border-color)",
               borderRadius: "10px",
-              background: "#fafafa"
+              background: "var(--bg-tertiary)"
             }}
           >
             <input
@@ -726,7 +734,7 @@ function BillingPage({ cart, setCart }) {
               ...actionButtonStyle,
               background:
                 isSubmitting || cart.length === 0 || disableSaveUnpaidForSelectedOrder
-                  ? "#bdc3c7"
+                  ? "#7f8c8d"
                   : "#f39c12",
               cursor:
                 isSubmitting || cart.length === 0 || disableSaveUnpaidForSelectedOrder
@@ -742,7 +750,8 @@ function BillingPage({ cart, setCart }) {
             disabled={isSubmitting || cart.length === 0}
             style={{
               ...actionButtonStyle,
-              background: "#2ecc71"
+              background: isSubmitting || cart.length === 0 ? "#7f8c8d" : "#2ecc71",
+              cursor: isSubmitting || cart.length === 0 ? "not-allowed" : "pointer"
             }}
           >
             Collect Payment
@@ -753,7 +762,7 @@ function BillingPage({ cart, setCart }) {
           <p
             style={{
               marginTop: "10px",
-              color: "#c0392b",
+              color: "#e74c3c",
               fontSize: "13px"
             }}
           >
@@ -768,9 +777,9 @@ function BillingPage({ cart, setCart }) {
             marginTop: "12px",
             width: "100%",
             padding: "12px",
-            background: "#ecf0f1",
-            color: "#333",
-            border: "none",
+            background: "var(--bg-secondary)",
+            color: "var(--text-primary)",
+            border: "1px solid var(--border-color)",
             borderRadius: "8px",
             fontWeight: "bold",
             cursor: "pointer"
@@ -783,8 +792,8 @@ function BillingPage({ cart, setCart }) {
       <div
         style={{
           width: "360px",
-          borderLeft: "1px solid #ddd",
-          background: "#fff",
+          borderLeft: "1px solid var(--border-color)",
+          background: "var(--bg-primary)",
           overflowY: "auto"
         }}
       >
@@ -797,8 +806,8 @@ function BillingPage({ cart, setCart }) {
 
       {showPaymentModal && (
         <Modal onClose={() => setShowPaymentModal(false)}>
-          <div style={{ minWidth: "280px" }}>
-            <h3 style={{ marginTop: 0 }}>Select Payment Method</h3>
+          <div style={{ minWidth: "280px", color: "var(--text-primary)" }}>
+            <h3 style={{ marginTop: 0, color: "var(--text-primary)" }}>Select Payment Method</h3>
             <div style={{ display: "grid", gap: "10px" }}>
               <button
                 onClick={() => handlePayNow("cash")}
@@ -828,7 +837,7 @@ function BillingPage({ cart, setCart }) {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0, 0, 0, 0.35)",
+            background: "rgba(0, 0, 0, 0.5)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -840,12 +849,14 @@ function BillingPage({ cart, setCart }) {
             style={{
               width: "100%",
               maxWidth: "460px",
-              background: "#fff",
+              background: "var(--bg-primary)",
               borderRadius: "14px",
               padding: "20px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.18)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
               maxHeight: "90vh",
-              overflowY: "auto"
+              overflowY: "auto",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border-color)"
             }}
           >
             <div
@@ -856,12 +867,13 @@ function BillingPage({ cart, setCart }) {
                 marginBottom: "14px"
               }}
             >
-              <h3 style={{ margin: 0 }}>🧾 Generated Bill</h3>
+              <h3 style={{ margin: 0, color: "var(--text-primary)" }}>🧾 Generated Bill</h3>
               <button
                 onClick={closeGeneratedBill}
                 style={{
-                  border: "none",
-                  background: "#f1f1f1",
+                  border: "1px solid var(--border-color)",
+                  background: "var(--bg-tertiary)",
+                  color: "var(--text-primary)",
                   borderRadius: "8px",
                   padding: "8px 12px",
                   cursor: "pointer",
@@ -874,8 +886,8 @@ function BillingPage({ cart, setCart }) {
 
             <div
               style={{
-                background: "#fafafa",
-                border: "1px solid #eee",
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
                 borderRadius: "12px",
                 padding: "14px",
                 marginBottom: "14px"
@@ -902,10 +914,11 @@ function BillingPage({ cart, setCart }) {
 
             <div
               style={{
-                border: "1px solid #eee",
+                border: "1px solid var(--border-color)",
                 borderRadius: "12px",
                 overflow: "hidden",
-                marginBottom: "14px"
+                marginBottom: "14px",
+                background: "var(--bg-primary)"
               }}
             >
               <div
@@ -914,9 +927,10 @@ function BillingPage({ cart, setCart }) {
                   gridTemplateColumns: "1.6fr 0.6fr 0.8fr",
                   gap: "10px",
                   padding: "12px 14px",
-                  background: "#f8f9fb",
+                  background: "var(--bg-tertiary)",
+                  color: "var(--text-primary)",
                   fontWeight: "700",
-                  borderBottom: "1px solid #eee"
+                  borderBottom: "1px solid var(--border-color)"
                 }}
               >
                 <div>Item</div>
@@ -932,7 +946,9 @@ function BillingPage({ cart, setCart }) {
                     gridTemplateColumns: "1.6fr 0.6fr 0.8fr",
                     gap: "10px",
                     padding: "12px 14px",
-                    borderBottom: "1px solid #f3f3f3"
+                    borderBottom: "1px solid var(--border-color)",
+                    color: "var(--text-primary)",
+                    background: "var(--bg-primary)"
                   }}
                 >
                   <div>{item.item_name}</div>
@@ -946,8 +962,8 @@ function BillingPage({ cart, setCart }) {
 
             <div
               style={{
-                background: "#f9fbff",
-                border: "1px solid #e6eefb",
+                background: "var(--bg-tertiary)",
+                border: "1px solid var(--border-color)",
                 borderRadius: "12px",
                 padding: "14px"
               }}
@@ -967,7 +983,7 @@ function BillingPage({ cart, setCart }) {
                   padding: "12px",
                   border: "none",
                   background: "#2c3e50",
-                  color: "#fff",
+                  color: "#ffffff",
                   borderRadius: "8px",
                   cursor: "pointer",
                   fontWeight: "bold"
@@ -983,7 +999,7 @@ function BillingPage({ cart, setCart }) {
                   padding: "12px",
                   border: "none",
                   background: "#27ae60",
-                  color: "#fff",
+                  color: "#ffffff",
                   borderRadius: "8px",
                   cursor: "pointer",
                   fontWeight: "bold"
@@ -1008,11 +1024,14 @@ function BillRow({ label, value, bold = false }) {
         marginBottom: "8px",
         fontWeight: bold ? "bold" : "normal",
         fontSize: bold ? "18px" : "14px",
-        gap: "12px"
+        gap: "12px",
+        color: "var(--text-primary)"
       }}
     >
-      <span>{label}</span>
-      <span style={{ textAlign: "right" }}>{value}</span>
+      <span style={{ color: bold ? "var(--text-primary)" : "var(--text-secondary)" }}>
+        {label}
+      </span>
+      <span style={{ textAlign: "right", color: "var(--text-primary)" }}>{value}</span>
     </div>
   );
 }
@@ -1022,17 +1041,29 @@ const inputStyle = {
   marginTop: "10px",
   padding: "10px 12px",
   borderRadius: "8px",
-  border: "1px solid #ccc",
+  border: "1px solid var(--border-color)",
   outline: "none",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)"
+};
+
+const selectStyle = {
+  padding: "10px",
+  borderRadius: "8px",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)",
+  outline: "none"
 };
 
 const qtyButtonStyle = {
   width: "30px",
   height: "30px",
   borderRadius: "6px",
-  border: "1px solid #ccc",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)",
   cursor: "pointer",
   fontWeight: "bold"
 };
@@ -1042,16 +1073,18 @@ const removeButtonStyle = {
   borderRadius: "6px",
   border: "none",
   background: "#e74c3c",
-  color: "#fff",
-  cursor: "pointer"
+  color: "#ffffff",
+  cursor: "pointer",
+  fontWeight: 600
 };
 
 const secondaryButtonStyle = {
   marginTop: "8px",
   padding: "10px 12px",
   borderRadius: "8px",
-  border: "1px solid #ccc",
-  background: "#fff",
+  border: "1px solid var(--border-color)",
+  background: "var(--bg-primary)",
+  color: "var(--text-primary)",
   cursor: "pointer",
   fontWeight: "600"
 };
@@ -1059,7 +1092,7 @@ const secondaryButtonStyle = {
 const actionButtonStyle = {
   width: "100%",
   padding: "12px",
-  color: "#fff",
+  color: "#ffffff",
   border: "none",
   borderRadius: "8px",
   fontWeight: "bold",

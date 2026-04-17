@@ -120,7 +120,7 @@ function CustomersPage() {
           </div>
 
           <div style={highlightCardStyle}>
-            <div style={{ fontSize: "13px", color: "#666" }}>Total Customers</div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Total Customers</div>
             <div style={{ fontWeight: 700, fontSize: "22px" }}>
               {filteredCustomers.length}
             </div>
@@ -212,15 +212,15 @@ function CustomersPage() {
 
 const pageStyle = {
   minHeight: "100vh",
-  background: "#f7f8fa",
+  background: "var(--bg-secondary)",
   padding: "24px"
 };
 
 const headerCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "22px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  boxShadow: "var(--shadow-sm)",
   marginBottom: "20px"
 };
 
@@ -239,14 +239,14 @@ const titleStyle = {
 
 const subtitleStyle = {
   margin: "8px 0 0",
-  color: "#666"
+  color: "var(--text-secondary)"
 };
 
 const highlightCardStyle = {
-  background: "#f8faff",
+  background: "var(--bg-tertiary)",
   padding: "12px 16px",
   borderRadius: "14px",
-  border: "1px solid #e8eefc"
+  border: "1px solid var(--border-color)"
 };
 
 const summaryGridStyle = {
@@ -257,15 +257,15 @@ const summaryGridStyle = {
 };
 
 const summaryCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "18px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+  boxShadow: "var(--shadow-sm)"
 };
 
 const summaryLabelStyle = {
   fontSize: "14px",
-  color: "#666"
+  color: "var(--text-secondary)"
 };
 
 const summaryValueStyle = {
@@ -274,17 +274,17 @@ const summaryValueStyle = {
 };
 
 const filterCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "18px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  boxShadow: "var(--shadow-sm)",
   marginBottom: "20px"
 };
 
 const inputStyle = {
   padding: "12px",
   borderRadius: "10px",
-  border: "1px solid #d7dce5"
+  border: "1px solid var(--border-color)"
 };
 
 const gridStyle = {
@@ -296,8 +296,8 @@ const gridStyle = {
 const customerCardStyle = {
   padding: "18px",
   borderRadius: "18px",
-  background: "#fff",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+  background: "var(--bg-primary)",
+  boxShadow: "var(--shadow-sm)",
   cursor: "pointer",
   transition: "0.2s"
 };
@@ -310,7 +310,7 @@ const customerHeaderStyle = {
 
 const badgeStyle = {
   fontSize: "12px",
-  background: "#eef3ff",
+  background: "var(--bg-tertiary)",
   color: "#335dff",
   padding: "6px 10px",
   borderRadius: "999px",
@@ -323,16 +323,16 @@ const infoRowStyle = {
 };
 
 const infoLabelStyle = {
-  color: "#666",
+  color: "var(--text-secondary)",
   fontSize: "14px"
 };
 
 const emptyCardStyle = {
-  background: "#fff",
+  background: "var(--bg-primary)",
   borderRadius: "18px",
   padding: "20px",
-  boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-  color: "#666"
+  boxShadow: "var(--shadow-sm)",
+  color: "var(--text-secondary)"
 };
 
 export default CustomersPage;

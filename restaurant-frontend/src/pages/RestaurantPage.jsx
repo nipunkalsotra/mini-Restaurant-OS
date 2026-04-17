@@ -456,16 +456,16 @@ function RestaurantPage() {
         <div
             style={{
                 minHeight: "100vh",
-                background: "#f7f8fa",
+                background: "var(--bg-secondary)",
                 padding: "24px"
             }}
         >
             <div
                 style={{
-                    background: "#fff",
+                    background: "var(--bg-primary)",
                     borderRadius: "18px",
                     padding: "22px",
-                    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+                    boxShadow: "var(--shadow-sm)",
                     marginBottom: "20px"
                 }}
             >
@@ -480,14 +480,14 @@ function RestaurantPage() {
                 >
                     <div>
                         <h1 style={{ margin: 0, fontSize: "30px" }}>⚙️ Restaurant Settings</h1>
-                        <p style={{ margin: "8px 0 0", color: "#666" }}>
+                        <p style={{ margin: "8px 0 0", color: "var(--text-secondary)" }}>
                             Manage restaurant details, categories, menu items, and prices.
                         </p>
                     </div>
 
                     {selectedRestaurant && (
                         <div style={highlightCardStyle}>
-                            <div style={{ fontSize: "13px", color: "#666" }}>Current Restaurant</div>
+                            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Current Restaurant</div>
                             <div style={{ fontWeight: 700, fontSize: "18px" }}>
                                 {selectedRestaurant.restaurant_name}
                             </div>
@@ -683,7 +683,7 @@ function RestaurantPage() {
                                 style={inputStyle}
                             />
 
-                            <p style={{ marginTop: "8px", color: "#666", fontSize: "13px" }}>
+                            <p style={{ marginTop: "8px", color: "var(--text-secondary)", fontSize: "13px" }}>
                                 This tax rate will be used for billing for this restaurant.
                             </p>
 
@@ -732,7 +732,7 @@ function RestaurantPage() {
 
                             <div style={{ marginTop: "16px" }}>
                                 {categories.length === 0 ? (
-                                    <p style={{ color: "#777" }}>No categories yet.</p>
+                                    <p style={{ color: "var(--text-secondary)" }}>No categories yet.</p>
                                 ) : (
                                     categories.map((cat) => (
                                         <div key={cat.category_id} style={listItemStyle}>
@@ -787,7 +787,7 @@ function RestaurantPage() {
                                                 >
                                                     <div>
                                                         <div style={{ fontWeight: 700 }}>{cat.category_name}</div>
-                                                        <div style={{ color: "#666", fontSize: "13px" }}>
+                                                        <div style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                                                             Display Order: {cat.display_order ?? "-"}
                                                         </div>
                                                     </div>
@@ -979,7 +979,7 @@ function RestaurantPage() {
                                                             alignItems: "center",
                                                             gap: "8px",
                                                             marginTop: "10px",
-                                                            color: "#444",
+                                                            color: "var(--text-secondary)",
                                                             fontWeight: 600
                                                         }}
                                                     >
@@ -1023,7 +1023,7 @@ function RestaurantPage() {
                                                     >
                                                         <div>
                                                             <h3 style={{ margin: 0 }}>{item.item_name}</h3>
-                                                            <p style={{ margin: "6px 0 0", color: "#666" }}>
+                                                            <p style={{ margin: "6px 0 0", color: "var(--text-secondary)" }}>
                                                                 {categoryName}
                                                             </p>
                                                         </div>
@@ -1063,7 +1063,7 @@ function RestaurantPage() {
                                                         ₹{item.item_price}
                                                     </div>
 
-                                                    <div style={{ color: "#666", fontSize: "13px" }}>
+                                                    <div style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
                                                         Item ID: #{item.menu_item_id}
                                                     </div>
 
@@ -1115,47 +1115,47 @@ const gridStyle = {
 };
 
 const cardStyle = {
-    background: "#fff",
+    background: "var(--bg-primary)",
     borderRadius: "18px",
     padding: "20px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.08)"
+    boxShadow: "var(--shadow-sm)"
 };
 
 const subCardStyle = {
-    background: "#fafbfc",
-    border: "1px solid #eef1f5",
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
     borderRadius: "14px",
     padding: "16px"
 };
 
 const menuCardStyle = {
-    background: "#fafbfc",
+    background: "var(--bg-tertiary)",
     borderRadius: "16px",
     padding: "16px"
 };
 
 const highlightCardStyle = {
-    background: "#f8faff",
+    background: "var(--bg-tertiary)",
     padding: "12px 16px",
     borderRadius: "14px",
-    border: "1px solid #e8eefc",
+    border: "1px solid var(--border-color)",
     minWidth: "220px"
 };
 
 const emptyCardStyle = {
-    background: "#fff",
+    background: "var(--bg-primary)",
     borderRadius: "18px",
     padding: "20px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
-    color: "#666"
+    boxShadow: "var(--shadow-sm)",
+    color: "var(--text-secondary)"
 };
 
 const inputStyle = {
     width: "100%",
     padding: "12px 14px",
     borderRadius: "10px",
-    border: "1px solid #d7dce5",
-    background: "#fff",
+    border: "1px solid var(--border-color)",
+    background: "var(--bg-primary)",
     fontSize: "14px",
     outline: "none",
     boxSizing: "border-box",
@@ -1180,7 +1180,7 @@ const primaryButtonStyle = {
     border: "none",
     borderRadius: "10px",
     background: "#2ecc71",
-    color: "#fff",
+    color: "var(--bg-primary)",
     fontWeight: "bold",
     cursor: "pointer"
 };
@@ -1190,7 +1190,7 @@ const blueButtonStyle = {
     border: "none",
     borderRadius: "10px",
     background: "#3498db",
-    color: "#fff",
+    color: "var(--bg-primary)",
     fontWeight: "bold",
     cursor: "pointer"
 };
@@ -1200,7 +1200,7 @@ const smallPrimaryButtonStyle = {
     border: "none",
     borderRadius: "8px",
     background: "#2ecc71",
-    color: "#fff",
+    color: "var(--bg-primary)",
     fontWeight: "bold",
     cursor: "pointer"
 };
@@ -1209,8 +1209,8 @@ const smallSecondaryButtonStyle = {
     padding: "8px 12px",
     border: "none",
     borderRadius: "8px",
-    background: "#ecf0f1",
-    color: "#333",
+    background: "var(--bg-secondary)",
+    color: "var(--text-primary)",
     fontWeight: "bold",
     cursor: "pointer"
 };
@@ -1220,7 +1220,7 @@ const smallDangerButtonStyle = {
     border: "none",
     borderRadius: "8px",
     background: "#e74c3c",
-    color: "#fff",
+    color: "var(--bg-primary)",
     fontWeight: "bold",
     cursor: "pointer"
 };
@@ -1232,8 +1232,8 @@ const buttonRowStyle = {
 };
 
 const listItemStyle = {
-    background: "#fafbfc",
-    border: "1px solid #eef1f5",
+    background: "var(--bg-tertiary)",
+    border: "1px solid var(--border-color)",
     borderRadius: "12px",
     padding: "14px",
     marginBottom: "12px"

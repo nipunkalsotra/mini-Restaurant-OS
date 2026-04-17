@@ -15,7 +15,7 @@ function Modal({ children, onClose }) {
       <div
         onClick={(e) => e.stopPropagation()} // prevent close on inside click
         style={{
-          background: "#fff",
+          background: "var(--bg-primary)",
           padding: "20px",
           borderRadius: "12px",
           width: "320px",
